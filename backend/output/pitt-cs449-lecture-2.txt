@@ -1,0 +1,209 @@
+--- Page 1 ---
+1/14/16	  
+1	  
+CS	  449	  –	  Lecture	  2	  
+Dr.	  Jack	  Lange	  
+tar	  
+•  tar	  is	  an	  archival	  tool	  for	  bundling	  mulBple	  
+ﬁles	  
+– Will	  be	  used	  for	  turning	  in	  projects/labs	  
+•  Create	  an	  archive	  
+–  tar –czf <archive name>.tar.gz [files to include] 
+•  Extract	  an	  archive	  
+–  tar –xzf <archive name>.tar.gz
+
+--- Page 2 ---
+1/14/16	  
+2	  
+C	  syntax	  parsing	  
+•  C	  is	  parsed	  top	  down	  
+•  This	  means	  variables/funcBons	  must	  be	  declared	  
+before	  they	  are	  used	  
+–  Before	  means	  above	  
+•  In	  Java	  this	  is	  true	  for	  variables	  inside	  a	  method	  
+–  But	  not	  for	  objects	  or	  methods	  
+•  In	  C	  this	  is	  true	  for	  everything	  
+–  FuncBons	  must	  be	  declared	  before	  use	  
+–  Variables	  must	  be	  declared	  before	  use	  
+–  Data	  structures	  must	  be	  deﬁned	  before	  use	  
+GePng	  Input	  for	  a	  C	  program	  
+•  1st	  mechanism:	  Command	  line	  arguments	  
+– List	  of	  words	  you	  typed	  into	  command	  line	  
+– Available	  as	  an	  array	  of	  strings	  named	  argv 
+•  char * argv[] 
+– argv[0]	  is	  always	  the	  name	  of	  the	  executable	  
+you	  are	  running	  
+•  Example:	  cmdargs.c
+
+--- Page 3 ---
+1/14/16	  
+3	  
+InteracBve	  Input	  
+•  2nd	  Mechanism:	  Console	  Input	  
+– Example:	  hello-­‐1.c	  
+•  scanf()	  
+–  int scanf(const char *format, ...);	  
+– Waits	  for	  input	  from	  the	  console	  and	  parses	  it	  
+•  According	  to	  a	  format	  string	  that	  speciﬁes	  how	  to	  parse	  
+input	  	  
+– Copies	  resulBng	  values	  into	  memory	  locaBons	  
+•  Uses	  locaBon	  of	  variables	  in	  memory	  (&	  operator)	  
+– Returns	  the	  number	  of	  successful	  matches	  
+•  Used	  to	  detect	  errors	  (0	  ==	  No	  input	  parsed)	  
+InteracBve	  Input	  -­‐	  Streams	  
+•  3rd	  mechanism:	  FIFO	  Streams	  
+–  FIFO	  =	  First	  In,	  First	  Out	  (in	  order	  processing)	  
+•  Console	  streams	  
+–  stdin	  –	  standard	  input	  	  
+–  stdout	  –	  standard	  output	  	  
+–  stderr	  –	  standard	  error	  	  
+•  Other	  streams	  
+–  Files,	  Devices,	  Network	  Sockets	  
+–  We’ll	  get	  to	  block	  interfaces	  later
+
+--- Page 4 ---
+1/14/16	  
+4	  
+Streams	  (2)	  
+•  Streams	  are	  buﬀered	  by	  the	  OS	  
+–  Must	  be	  ﬂushed	  to	  transfer	  data	  
+–  Buﬀers	  can	  be	  conﬁgured	  
+•  Implicit/Explicit	  streams	  
+–  prind()	  and	  other	  funcBons	  implicitly	  use	  stdin/stdout	  
+–  Variants	  exist	  that	  allow	  explicit	  stream	  selecBon	  
+•  E.g.	  fprind()	  allows	  prinBng	  to	  a	  speciﬁc	  stream	  
+• 
+int printf(const char *format, ...) 
+• 
+int fprintf(FILE *stream, const char *format, ...); 
+Easy	  File	  I/O	  
+•  The	  UI	  shell	  can	  be	  used	  for	  ﬁle	  I/O	  
+–  Files	  and	  streams	  are	  the	  same	  in	  C	  
+•  Unix:	  Everything	  is	  a	  ﬁle	  
+–  	  …so	  we	  can	  mix	  and	  match	  easily	  
+•  Shell	  RedirecBon	  
+–  Redirect	  console	  streams	  
+1.  Redirect	  stdout	  to	  a	  ﬁle	  (‘>’	  and	  ‘>>’)	  
+–  ls > files.out 	  	  	  	  	  	  	  	  	  	  -­‐-­‐	  creates	  new	  ﬁle	  “ﬁles.out”	  
+–  ls >> all_files.out	  -­‐-­‐	  appends	  to	  ﬁle	  “all_ﬁles.out”	  
+2.  Read	  stdin	  from	  a	  ﬁle	  (‘<‘)	  
+–  wc < files.out 
+3.  Pipe	  stdout	  of	  one	  program	  to	  stdin	  of	  another	  (‘|’)	  
+–  ls -l | sort 
+–  ls | grep .c | wc
+
+--- Page 5 ---
+1/14/16	  
+5	  
+Special	  Streams	  
+•  Streams	  are	  everywhere	  
+•  OS	  uses	  streams	  to	  provide	  special	  features	  
+–  Exposed	  as	  special	  ﬁles	  in	  the	  ﬁle	  system	  
+•  Examples	  
+–  /dev/null	  
+•  A	  black	  hole	  of	  zero	  size	  but	  inﬁnite	  capacity	  
+•  Reads	  always	  returns	  nothing	  
+•  Writes	  disappear	  
+–  /dev/zero	  
+•  Reads:	  inﬁnite	  number	  of	  zeroes	  	  
+•  Diﬀerent	  than	  /dev/null	  
+–  /dev/random	  
+•  Reads:	  	  a	  stream	  of	  random	  numbers	  
+File	  I/O	  in	  programs	  
+•  Command	  line	  and	  streams	  handled	  by	  system	  
+•  Files	  you	  have	  to	  manage	  on	  your	  own	  
+–  FILE * file = fopen(name, <mode>);	  	  
+•  On	  error	  NULL	  is	  returned	  
+–  void fclose(FILE * file) 
+•  Text	  ﬁles	  
+–  Once	  open,	  a	  text	  ﬁle	  CAN	  be	  treated	  like	  a	  console	  
+–  fprintf, fscanf	  –	  variants	  that	  can	  work	  on	  ﬁles
+
+--- Page 6 ---
+1/14/16	  
+6	  
+ASCII	  Files	  
+•  ASCII:	  Encoding	  that	  maps	  bytes	  to	  text	  characters	  
+–  Translates	  characters	  from	  human	  readable	  to	  machine	  
+readable	  
+–  ”7”	  is	  a	  human	  readable	  string	  representaBon	  of	  the	  number	  7 
+–  7	  is	  a	  raw	  binary	  number	  stored	  in	  memory	  
+•  Examples	  
+int i = 7 
+fprintf("%d\n", i); 
+ 
+Memory: 0x00000007 
+File: 0x37, 0x0a 
+ 
+int i = -7; 
+fprintf("%d\n", i); 
+ 
+Memory: 0xfffffff9 
+File: 0x2d, 0x37, 0x0a 
+Explicit	  File	  I/O	  
+•  An	  applicaBon	  can	  only	  operate	  on	  data	  in	  memory	  
+–  To	  analyze	  and	  modify	  data	  it	  must	  be	  resident	  in	  memory	  ﬁrst	  
+–  Programmer	  must	  copy	  data	  to/from	  ﬁles	  and	  memory	  
+•  File	  accesses	  are	  similar	  to	  memory 
+–  Files	  are	  just	  arrays	  of	  bytes	  
+–  BUT,	  we	  accesses	  are	  explicit	  not	  implicit	  
+•  Explicit	  	  
+–  Handled	  by	  the	  programmer	  explicitly	  (in	  code)	  
+•  Implicit	  
+–  Handled	  by	  the	  compiler/HW	  automaBcally
+
+--- Page 7 ---
+1/14/16	  
+7	  
+File	  I/O	  
+•  Reading	  raw	  data	  from	  a	  ﬁle	  to	  memory	  
+size_t fread(void * ptr,  
+ 
+ 
+      size_t size,  
+ 
+ 
+ 
+   size_t nitems,  
+ 
+ 
+ 
+   FILE * stream); 
+ 
+•  WriHng	  raw	  data	  from	  memory	  to	  a	  ﬁle	  
+size_t fwrite(const void * ptr,  
+ 
+ 
+ 
+   size_t size,  
+ 
+ 
+ 
+   size_t nitems,  
+ 
+ 
+ 
+   FILE * stream); 
+File	  I/O	  behavior	  
+int x = 5; 
+File * outfile = fopen(argv[1], "wb"); 
+fwrite(&x, sizeof(x), 1, outfile); 
+ 
+memory: 0x00000007 
+file: 0x00000007
+
+--- Page 8 ---
+1/14/16	  
+8	  
+File	  Oﬀsets	  
+•  Files	  are	  arrays	  of	  bytes	  
+–  BUT	  the	  fread/fwrite	  don’t	  have	  ﬁle	  oﬀset	  args	  
+•  File	  oﬀsets	  are	  implicitly	  tracked	  by	  the	  system	  	  
+–  I/O	  operaBons	  always	  occur	  at	  the	  current	  “ﬁle	  posiBon”	  
+–  The	  ﬁle	  posi4on	  is	  the	  oﬀset	  at	  which	  you	  are	  currently	  at	  
+–  The	  locaBon	  changes	  as	  you	  read/write	  
+•  Reading	  5	  bytes	  from	  a	  ﬁle,	  moves	  the	  current	  posiBon	  forward	  by	  
+ﬁve	  bytes	  
+•  Explicitly	  modifying	  the	  ﬁle	  posiBon	  
+–  int fseek(FILE * stream, long offset, int whence); 
+–  fseek(fstream,	  16,	  SEEK_SET);	  -­‐-­‐	  Moves	  the	  ﬁle	  posiBon	  to	  byte	  16	  of	  the	  ﬁle

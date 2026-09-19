@@ -1,0 +1,26 @@
+---
+description: Nemotron prompts generate fill-in templates, not homework answers
+globs: backend/**/*.{py,txt,md}
+alwaysApply: false
+---
+
+# Nemotron prompts
+
+Turn extracted lecture text into a **fill-in template**. Leave blanks for the student. Honor toggles. Do not solve problems or write completed answers.
+
+- `definitions`: slots such as `Term: ________` or a short cue, not a full glossary entry unless the user chose a more-filled template.
+- `diagrams`: labeled empty space / caption, not a drawn or described finished diagram.
+- `code blocks`: empty or skeleton blocks with blanks, not working solutions.
+- More filled = extra cues and section headers. More blank = headings and empty space only.
+- Always include a disclaimer that topics may be missing.
+
+```python
+# ❌ BAD
+"Using the lecture, solve every practice problem and define every term in full."
+
+# ✅ GOOD
+"""Create a lecture note template from the source text.
+Honor toggles: definitions={definitions}, diagrams={diagrams}, code_blocks={code_blocks}, density={density}.
+Leave blanks for the student. Do not answer homework or complete proofs.
+Reserve labeled slots for enabled sections. Add a short missing-topic disclaimer."""
+```

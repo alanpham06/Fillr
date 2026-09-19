@@ -1,0 +1,33 @@
+---
+description: FastAPI, PostgreSQL, extraction/OCR service, and Nemotron client conventions
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend Python
+
+- FastAPI routers + Pydantic models for every request/response.
+- SQLAlchemy + Alembic against PostgreSQL.
+- Secrets only from env: `NVIDIA_API_KEY`, `DATABASE_URL`.
+- Extraction/OCR lives in a service module, not route handlers.
+- Nemotron via `openai.OpenAI(base_url="https://integrate.api.nvidia.com/v1")`.
+- First endpoints: `POST /ingest` (upload → stored source text), `POST /templates/generate` (toggles + Nemotron). No homework routes.
+
+```python
+# ❌ BAD — OCR and LLM calls inside the route
+@router.post("/ingest")
+async def ingest(file: UploadFile):
+    text = pytesseract.image_to_string(Image.open(file.file))
+    return {"text": text}
+
+# ✅ GOOD — route validates, service extracts
+@router.post("/ingest")
+async def ingest(file: UploadFile, extractor: TextExtractor = Depends(get_extractor)):
+    try:
+        pages = extractor.extract(await save_upload(file))
+    except ExtractionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return IngestResponse(pages=pages)
+```
+
+Keep a swappable extractor interface (`TextExtractor.extract(path) -> list[PageText]`): PyMuPDF first, Tesseract fallback.

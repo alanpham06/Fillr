@@ -1,0 +1,32 @@
+---
+description: React upload and template-toggle UI conventions
+globs: frontend/**/*.{js,jsx,ts,tsx}
+alwaysApply: false
+---
+
+# Frontend React
+
+- Functional components only.
+- All FastAPI calls live in a client module (e.g. `frontend/src/api.js`), not inside components.
+- Core UI: file upload + toggles for definitions, diagrams, and code blocks (more filled vs more blank).
+- Render the generated template simply. Print/export comes later.
+- No homework chat, Q&A box, or "ask about this folder" UI.
+
+```jsx
+// ❌ BAD — fetch + template logic inlined in the page
+function App() {
+  const onSubmit = async (e) => {
+    const res = await fetch("/ingest", { method: "POST", body: new FormData(e.target) });
+    setText(await res.json());
+  };
+}
+
+// ✅ GOOD — component calls the API client
+function UploadForm({ onIngested }) {
+  const onSubmit = async (file, toggles) => {
+    const source = await api.ingest(file);
+    const template = await api.generateTemplate(source.id, toggles);
+    onIngested(template);
+  };
+}
+```
