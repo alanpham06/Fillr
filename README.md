@@ -2,6 +2,8 @@
 
 Upload lecture slides, choose how filled-in the notes should be, and download a fill-in lecture template. This is not a homework solver.
 
+SteelHacks 2026.
+
 ## Run locally
 
 ```bash
