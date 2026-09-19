@@ -1,0 +1,32 @@
+---
+description: Product intent, stack, scope, and ingest policy for the lecture-template app
+alwaysApply: true
+---
+
+# Lecture template app
+
+Students upload notes, textbooks, or slides. We generate a **fill-in lecture template**, not completed notes and not homework answers.
+
+## Stack
+
+- Frontend: React in `frontend/`
+- Backend: Python + FastAPI in `backend/`
+- Database: PostgreSQL
+- AI: NVIDIA Nemotron via the OpenAI-compatible API (`https://integrate.api.nvidia.com/v1`)
+- Nemotron is text-only. Never send images to it.
+
+## Scope
+
+- In scope: ingest source material, extract text, generate templates with toggles (definitions, diagrams, code blocks; more filled vs more blank).
+- Out of scope: homework Q&A, solving problems, writing full answers, chatting over a notes folder.
+- Show a disclaimer that generated templates may miss topics.
+
+## Ingest
+
+1. Extract native PDF text first (PyMuPDF).
+2. OCR with Tesseract only when a page has almost no extractable text, or the upload is an image.
+3. Handwriting is later; do not build a handwriting path unless asked.
+
+## Secrets
+
+Never commit `.env`, API keys, or database URLs. Use `.env.example` with `NVIDIA_API_KEY` and `DATABASE_URL` only.

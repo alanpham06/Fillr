@@ -1,0 +1,226 @@
+--- Page 1 ---
+1
+IS12 - Introduction to Programming
+Lecture 13: Conditionals
+Peter Brusilovsky
+http://www2.sis.pitt.edu/~peterb/0012-051/
+Course Logistics
+I We are at a turning point
+I We have got through C basics and
+programs are getting complicated
+– Are you able to follow?
+– How challenging was the exam?
+– Can you understand  and write programs?
+I This is the last chance to catch up
+
+--- Page 2 ---
+2
+What you have to do?
+I Attend lectures and browse it again
+I Do your reading assignments
+I Explore all examples - run, modify...
+I Solve all problems (including exercises)
+I Work with KnowledgeTree - quizzes,
+dissections, Expression Executor
+I Try free C tutorials (KnowledgeSea)
+I Ask questions in the forums
+I Come and talk with us, use office hours
+Outline
+I If and If-else
+I The use of if-else
+I The use of if
+I Simple nested ifs
+I If inside a loop
+I Conditional operator
+I If-else vs. conditional operator
+
+--- Page 3 ---
+3
+Conditional Statement if-else
+if (expression)
+     statement-1
+else
+     statement-2
+nextstatement
+– If expression is not 0 (true) - statement-1
+– If expression is 0 (false) - statement-2
+– In any case after that - nextstatement
+Flowchart of if-else
+Expression ?
+Statement-1
+Nextstatement
+Statement-2
+!= 0
+(true)
+== 0
+(false)
+
+--- Page 4 ---
+4
+if-else with blocks
+if (expression) {
+statement-11
+...
+} else {
+statement-21
+…
+}
+nextstatement
+Conditional Statement if
+if (expression)
+     statement-1
+nextstatement
+I If expression value isn’t 0 (true) - statement-1,
+after that - nextstatement
+I If expression value is 0 (false) - nextstatement
+
+--- Page 5 ---
+5
+Flowchart of if
+Expression ?
+Statement1
+Statement3
+!= 0
+(true)
+== 0
+(false)
+if with blocks
+if (expression) {
+statement-11
+...
+}
+nextstatement
+
+--- Page 6 ---
+6
+Example: Maximum with if-else
+#include <stdio.h>
+void main() {
+int a, b;
+printf("Enter two integers: ");
+scanf("%d %d", &a, &b);
+printf("Maximum of %d and %d ", a, b);
+if(a < b)
+printf("is %d\n", b);
+else
+printf("is %d\n", a);
+}
+Example: Maximum with if
+#include <stdio.h>
+void main() {
+int a, b, max;
+printf("Enter two integers: ");
+scanf("%d %d", &a, &b);
+max = a; /* pre-assignment */
+if(a < b)
+max = b; /* re-assignment */
+printf("Maximum of %d and %d is %d", a, b, max);
+}
+
+--- Page 7 ---
+7
+Example: Variable Rate (1)
+#define THRESHOLD 5000
+#include <stdio.h>
+void main() {
+float rate1, rate2, interest_rate; /* interest rates %% */
+float capital; /* capital $$ */
+float annual_interest; /* annual interest $$ */
+/* read data */
+printf("Interest rates (%%xx.xx): ");
+scanf("%f %f", &rate1, &rate2);
+printf("Capital ($$.cc): ");
+scanf("%f",&capital);
+Example: Variable Rate (2)
+/* calculate the rate */
+if (capital < THRESHOLD)
+interest_rate = rate1;
+else
+interest_rate = rate2;
+printf("The rate for $%.2f is %.2f%%\n",
+capital, interest_rate);
+/* calculate capital */
+annual_interest = capital * interest_rate / 100;
+printf("Interest %6.2f; New capital %9.2f\n", 
+annual_interest, capital + annual_interest);
+}
+
+--- Page 8 ---
+8
+Example: Nested if - max3
+#include <stdio.h>
+void main() {
+int a, b, c;
+printf("Enter three integers: ");
+scanf("%d %d %d", &a, &b, &c);
+printf("Maximum of %d, %d and %d is ", a, b, c);
+if(a > b)
+if(a > c)
+printf("%d\n", a);
+else
+printf("%d\n", c);
+else
+if(b > c)
+printf("%d\n", b);
+else
+printf("%d\n", c);
+}
+Example: Running Max
+#define SENTINEL -1
+#include <stdio.h>
+void main () {
+   int max, nextnumber;
+printf("Number: ");
+scanf("%d", &nextnumber); /* read first number */
+max = nextnumber; /* pre-assignment */
+while (nextnumber != SENTINEL) {
+   
+if (max <  nextnumber)
+max = nextnumber;
+printf("Number: ");
+scanf("%d", &nextnumber);
+}
+printf ("Max = %d\n", max);
+}
+The Running Max pattern
+Interleaved with
+The Sentinel Loop pattern
+
+--- Page 9 ---
+9
+Conditional Operator
+Expr1 ? Expr2 : Expr3
+I Conditional operator calculates the
+value from 3 arguments (expressions)
+I First, Expr1 is evaluated
+I If it is true (not zero), then Expr2 is
+calculated; it’s value is the result
+I If it is false (zero), then Expr3 is
+calculated; its value is the result
+Conditional Operator: Examples
+I min = a < b ? a : b
+I rate = capital < 3000 ? rate1 : rate 2
+I printf("%c\n", (lower ? 'a' : 'A'));
+I x = a + (b % 2 ? b - 1 : b)
+
+--- Page 10 ---
+10
+Compare Conditionals
+I Conditional statement
+– Controls the order of statement execution
+if (capital < THRESHOLD)
+interest_rate = rate1;
+else
+interest_rate = rate2;
+I Conditional operator
+– Calculates a value
+interest_rate = capital < THRESHOLD ? rate1 : rate2;
+Before next lecture:
+I Do reading assignment
+I Perry: Chapter 11; Chapter 13: Hello
+Conditional
+I Run Classroom Examples
+I Exercises: variable rate in a loop;
+calculating minimum of a sequence
+I Check yourself by working with
+KnowledgeTree and its components
