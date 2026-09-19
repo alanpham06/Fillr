@@ -1,0 +1,247 @@
+\documentclass[12pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{framed}
+\usepackage{amssymb}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8}
+}
+
+\title{CS 449 -- Lecture 2 Note Template}
+\author{Dr.\ Jack Lange}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{tar archives}
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{tar} is used to \hrulefill
+  \item Why will this course use \texttt{tar}? \hrulefill
+  \item Create an archive: \texttt{tar -czf} \hrulefill
+  \item Extract an archive: \texttt{tar -xzf} \hrulefill
+  \item What do the flags \texttt{c}, \texttt{x}, \texttt{z}, and \texttt{f} mean? \hrulefill
+\end{itemize}
+
+\vspace{1.2em}
+
+\section{C syntax parsing}
+
+\begin{itemize}[leftmargin=*]
+  \item C is parsed \hrulefill
+  \item ``Before'' means \hrulefill
+  \item In Java, what still must be declared before use? \hrulefill
+  \item In Java, what does \emph{not} need to be declared above its use? \hrulefill
+  \item In C, list three things that must appear above their use: \hrulefill
+\end{itemize}
+
+\vspace{0.8em}
+
+\begin{lstlisting}
+/* Why would this fail to compile in C? */
+/* ____________________________________ */
+
+int main(void) {
+    foo();
+}
+
+void foo(void) {
+    /* ________________________________ */
+}
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\section{Getting input for a C program}
+
+\subsection{Command-line arguments}
+\begin{itemize}[leftmargin=*]
+  \item 1st mechanism: \hrulefill
+  \item \texttt{argv} is \hrulefill
+  \item Type of \texttt{argv}: \texttt{char * argv[]} \quad What is each element? \hrulefill
+  \item \texttt{argv[0]} is always \hrulefill
+  \item Example program from slides: \hrulefill
+\end{itemize}
+
+\begin{lstlisting}
+int main(int argc, char *argv[]) {
+    // argc is ________________________________
+    // argv[1] is _____________________________
+}
+\end{lstlisting}
+
+\subsection{Console input (scanf)}
+\begin{itemize}[leftmargin=*]
+  \item 2nd mechanism: \hrulefill
+  \item Example program: \hrulefill
+  \item \texttt{scanf} waits for \hrulefill
+  \item The format string tells scanf \hrulefill
+  \item Why do you pass \texttt{\&variable}? \hrulefill
+  \item What does a return value of 0 mean? \hrulefill
+\end{itemize}
+
+\begin{lstlisting}
+int n;
+int matched = scanf("%d", /* what goes here? */);
+/* matched == ________________________________ */
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\section{Streams}
+
+\begin{itemize}[leftmargin=*]
+  \item 3rd mechanism: \hrulefill
+  \item FIFO means \hrulefill
+  \item Name the three console streams and what each is for:
+  \begin{itemize}
+    \item \texttt{stdin}: \hrulefill
+    \item \texttt{stdout}: \hrulefill
+    \item \texttt{stderr}: \hrulefill
+  \end{itemize}
+  \item Other stream examples from lecture: \hrulefill
+\end{itemize}
+
+\noindent\textbf{Diagram: program, OS buffer, and a console stream}
+\begin{framed}
+\begin{minipage}[t][0.28\textheight]{\textwidth}
+\vspace{0.4em}
+\textit{Sketch how data moves from your program through a buffer to stdin/stdout/stderr. Mark where a flush happens.}
+\end{minipage}
+\end{framed}
+
+\subsection{Buffering and explicit streams}
+\begin{itemize}[leftmargin=*]
+  \item Streams are buffered by \hrulefill
+  \item You must \hrulefill\ to actually transfer data.
+  \item Implicit functions such as \texttt{printf} use \hrulefill
+  \item \texttt{fprintf} lets you \hrulefill
+\end{itemize}
+
+\begin{lstlisting}
+int printf(const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+/* When would you use fprintf instead of printf? */
+/* ____________________________________________ */
+\end{lstlisting}
+
+\subsection{Shell redirection}
+\begin{itemize}[leftmargin=*]
+  \item In Unix, files and streams are \hrulefill
+  \item \texttt{>} does \hrulefill \quad Example: \texttt{ls > files.out}
+  \item \texttt{>>} does \hrulefill \quad Example: \texttt{ls >> all\_files.out}
+  \item \texttt{<} does \hrulefill \quad Example: \texttt{wc < files.out}
+  \item \texttt{|} does \hrulefill \quad Example: \texttt{ls | grep .c | wc}
+\end{itemize}
+
+\vspace{1.2em}
+
+\section{Special streams}
+
+\begin{itemize}[leftmargin=*]
+  \item The OS exposes special features as \hrulefill
+  \item \texttt{/dev/null}: reads \hrulefill; writes \hrulefill
+  \item \texttt{/dev/zero}: reads \hrulefill
+  \item How is \texttt{/dev/zero} different from \texttt{/dev/null}? \hrulefill
+  \item \texttt{/dev/random}: reads \hrulefill
+\end{itemize}
+
+\vspace{1.2em}
+
+\section{File I/O in programs}
+
+\begin{itemize}[leftmargin=*]
+  \item Command line and console streams are handled by \hrulefill
+  \item Files you open yourself must be \hrulefill
+  \item \texttt{fopen} returns \hrulefill\ on error.
+  \item After a text file is open, you can treat it like \hrulefill
+  \item Text-file cousins of \texttt{printf}/\texttt{scanf}: \hrulefill
+\end{itemize}
+
+\begin{lstlisting}
+FILE *file = fopen(name, /* mode? */);
+if (file == NULL) {
+    /* ________________________________ */
+}
+/* use fprintf / fscanf here */
+fclose(file);
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\section{ASCII files vs raw values}
+
+\begin{itemize}[leftmargin=*]
+  \item ASCII maps \hrulefill\ to \hrulefill
+  \item The character \texttt{"7"} is \hrulefill
+  \item The integer \texttt{7} in memory is \hrulefill
+\end{itemize}
+
+\noindent\textbf{Diagram: memory bytes vs file bytes for \texttt{fprintf("\%d\textbackslash n", i)}}
+\begin{framed}
+\begin{minipage}[t][0.28\textheight]{\textwidth}
+\vspace{0.4em}
+\textit{For $i = 7$ and $i = -7$, write the memory representation and the bytes that land in the file. Slides used 0x00000007 vs 0x37, 0x0a and 0xfffffff9 vs 0x2d, 0x37, 0x0a.}
+\end{minipage}
+\end{framed}
+
+\vspace{1.2em}
+
+\section{Explicit file I/O}
+
+\begin{itemize}[leftmargin=*]
+  \item An application can only operate on data that is \hrulefill
+  \item The programmer must copy data \hrulefill
+  \item Files are like arrays of \hrulefill
+  \item File access is \textbf{explicit}. That means \hrulefill
+  \item Memory access is often \textbf{implicit}. That means \hrulefill
+\end{itemize}
+
+\subsection{\texttt{fread} and \texttt{fwrite}}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{fread} copies \hrulefill
+  \item \texttt{fwrite} copies \hrulefill
+  \item Arguments to think through: \texttt{ptr}, \texttt{size}, \texttt{nitems}, \texttt{stream}
+\end{itemize}
+
+\begin{lstlisting}
+int x = 5;
+FILE *outfile = fopen(argv[1], "wb");
+fwrite(&x, sizeof(x), 1, outfile);
+/* memory contains _______________________________ */
+/* file contains _________________________________ */
+fclose(outfile);
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\section{File offsets}
+
+\begin{itemize}[leftmargin=*]
+  \item Files are arrays of bytes, but \texttt{fread}/\texttt{fwrite} do not take \hrulefill
+  \item The current file position is \hrulefill
+  \item After you read 5 bytes, the position \hrulefill
+  \item \texttt{fseek(fstream, 16, SEEK\_SET)} moves \hrulefill
+\end{itemize}
+
+\noindent\textbf{Diagram: file as a byte array with a moving position}
+\begin{framed}
+\begin{minipage}[t][0.28\textheight]{\textwidth}
+\vspace{0.4em}
+\textit{Draw a file of bytes. Mark the current position, then show where it lands after reading 5 bytes and after \texttt{fseek(..., 16, SEEK\_SET)}.}
+\end{minipage}
+\end{framed}
+
+\vspace{2em}
+\begin{center}
+\textit{This template may not cover every topic from the source slides.}
+\end{center}
+
+\end{document}
