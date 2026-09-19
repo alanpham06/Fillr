@@ -1,0 +1,71 @@
+\documentclass[14pt]{extarticle}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{framed}
+\usepackage{amssymb}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8}
+}
+
+\title{Lecture Note Template Preview}
+\author{SteelHacks note-template POC}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{C syntax parsing}
+
+\begin{itemize}[leftmargin=*]
+  \item C is parsed \hrulefill
+  \item Variables and functions must be declared \hrulefill
+  \item How is this different from Java? \hrulefill
+\end{itemize}
+
+\vspace{1.2em}
+
+\section{Getting input}
+
+\subsection{Command-line arguments}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{argv[0]} is always \hrulefill
+  \item Example program: \hrulefill
+\end{itemize}
+
+\subsection{Code: read argv}
+\begin{lstlisting}
+int main(int argc, char *argv[]) {
+    // What does argv[1] contain?
+    // ________________________________
+}
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\section{Streams}
+
+\begin{itemize}[leftmargin=*]
+  \item stdin / stdout / stderr are \hrulefill
+  \item Why must a stream be flushed? \hrulefill
+\end{itemize}
+
+\noindent\textbf{Diagram: buffered stream from program to OS}
+\begin{framed}
+\begin{minipage}[t][0.28\textheight]{\textwidth}
+\vspace{0.5em}
+\textit{Sketch the buffer, the flush, and where printf writes.}
+\end{minipage}
+\end{framed}
+
+\vspace{2em}
+\begin{center}
+\textit{This template may not cover every topic from the source slides.}
+\end{center}
+
+\end{document}

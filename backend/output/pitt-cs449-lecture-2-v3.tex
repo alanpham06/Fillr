@@ -1,0 +1,246 @@
+\documentclass[12pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{framed}
+\usepackage{amssymb}
+\usepackage{needspace}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8}
+}
+
+\title{CS449 Lecture Handout: Input and Files}
+\author{Dr.\ Jack Lange}
+\date{Lecture 2}
+
+\begin{document}
+\maketitle
+
+\section*{tar}
+
+\Needspace{0.22\textheight}
+\noindent\textbf{What tar is for:}
+\vspace{0.14\textheight}
+
+\Needspace{0.16\textheight}
+\noindent\textbf{Example:} bundle this week's lab files \quad\texttt{tar -czf} / \texttt{tar -xzf}
+\vspace{0.10\textheight}
+
+\section*{C is parsed top down}
+
+\Needspace{0.30\textheight}
+\noindent\textbf{What ``top down'' changes when you write a .c file:}
+\vspace{0.22\textheight}
+
+\Needspace{0.30\textheight}
+\noindent\textbf{Compare with Java:}
+\vspace{0.22\textheight}
+
+\Needspace{0.28\textheight}
+\begin{lstlisting}
+int main(void) {
+    foo();
+}
+void foo(void) { }
+\end{lstlisting}
+\vspace{0.12\textheight}
+
+\newpage
+\section*{Types of input}
+
+\noindent Command line \hspace{3.5em} Console (\texttt{scanf}) \hspace{3.5em} Streams
+
+\Needspace{0.22\textheight}
+\noindent\textbf{argv --- what it is:}
+\vspace{0.14\textheight}
+
+\Needspace{0.14\textheight}
+\noindent\textbf{argv[0] is:}
+\vspace{0.10\textheight}
+
+\Needspace{0.14\textheight}
+\noindent\textbf{Example:} run \texttt{./cmdargs hello 42}
+\vspace{0.08\textheight}
+
+\Needspace{0.40\textheight}
+\noindent\textbf{scanf --- format string, \texttt{\&}, and the return value:}
+\vspace{0.26\textheight}
+
+\Needspace{0.24\textheight}
+\noindent\textbf{Suppose} the call is
+\begin{lstlisting}
+int n;
+int matched = scanf("%d", /* */);
+\end{lstlisting}
+\vspace{0.12\textheight}
+
+\newpage
+\section*{Streams}
+
+\Needspace{0.24\textheight}
+\noindent\textbf{What a stream is (FIFO):}
+\vspace{0.16\textheight}
+
+\Needspace{0.34\textheight}
+\noindent\textbf{stdin / stdout / stderr:}
+\vspace{0.24\textheight}
+
+\Needspace{0.32\textheight}
+\noindent\textbf{printf vs fprintf:}
+\vspace{0.14\textheight}
+
+\begin{lstlisting}
+int printf(const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+\end{lstlisting}
+
+\newpage
+\Needspace{0.55\textheight}
+\noindent\textbf{Picture:} program, OS buffer, console --- mark a flush
+\begin{framed}
+\begin{minipage}[t][0.44\textheight]{\textwidth}
+\vspace{0.4em}
+\end{minipage}
+\end{framed}
+
+\newpage
+\section*{The shell and streams}
+
+\Needspace{0.32\textheight}
+\noindent\textbf{Why the shell can mix files and streams:}
+\vspace{0.22\textheight}
+
+\Needspace{0.36\textheight}
+\noindent\textbf{What each does:}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{>} \quad \texttt{ls > files.out}
+  \item \texttt{>>} \quad \texttt{ls >> all\_files.out}
+  \item \texttt{<} \quad \texttt{wc < files.out}
+  \item \texttt{|} \quad \texttt{ls | grep .c | wc}
+\end{itemize}
+\vspace{0.22\textheight}
+
+\newpage
+\section*{Special streams}
+
+\Needspace{0.70\textheight}
+\noindent\textbf{/dev/null:}
+\vspace{0.14\textheight}
+
+\noindent\textbf{/dev/zero:}
+\vspace{0.14\textheight}
+
+\noindent\textbf{/dev/random:}
+\vspace{0.14\textheight}
+
+\noindent\textbf{Question:} How is \texttt{/dev/zero} different from \texttt{/dev/null}?
+\vspace{0.22\textheight}
+
+\newpage
+\section*{File I/O in programs}
+
+\Needspace{0.24\textheight}
+\noindent\textbf{Who manages console streams vs files you open:}
+\vspace{0.14\textheight}
+
+\Needspace{0.36\textheight}
+\noindent\textbf{fopen / fclose:}
+\vspace{0.16\textheight}
+
+\begin{lstlisting}
+FILE *file = fopen(name, /* mode */);
+fclose(file);
+\end{lstlisting}
+\vspace{0.12\textheight}
+
+\newpage
+\section*{ASCII vs raw bytes}
+
+\Needspace{0.32\textheight}
+\noindent\textbf{Character \texttt{"7"} vs integer 7:}
+\vspace{0.22\textheight}
+
+\Needspace{0.28\textheight}
+\noindent\textbf{Example:}
+\begin{lstlisting}
+int i = 7;
+fprintf("%d\n", i);
+\end{lstlisting}
+\noindent Memory: \hspace{8em} File:
+\vspace{0.12\textheight}
+
+\noindent\textbf{Example:}
+\begin{lstlisting}
+int i = -7;
+fprintf("%d\n", i);
+\end{lstlisting}
+\noindent Memory: \hspace{8em} File:
+\vspace{0.12\textheight}
+
+\newpage
+\Needspace{0.55\textheight}
+\noindent\textbf{Picture:} memory on the left, file bytes on the right
+\begin{framed}
+\begin{minipage}[t][0.44\textheight]{\textwidth}
+\vspace{0.4em}
+\end{minipage}
+\end{framed}
+
+\newpage
+\section*{Explicit file I/O}
+
+\Needspace{0.24\textheight}
+\noindent\textbf{Why data has to be in memory first:}
+\vspace{0.14\textheight}
+
+\Needspace{0.32\textheight}
+\noindent\textbf{explicit vs implicit access:}
+\vspace{0.22\textheight}
+
+\Needspace{0.36\textheight}
+\noindent\textbf{fread / fwrite:}
+\vspace{0.22\textheight}
+
+\begin{lstlisting}
+int x = 5;
+FILE *outfile = fopen(argv[1], "wb");
+fwrite(&x, sizeof(x), 1, outfile);
+\end{lstlisting}
+\noindent memory: \hspace{8em} file:
+\vspace{0.12\textheight}
+
+\newpage
+\section*{File position}
+
+\Needspace{0.32\textheight}
+\noindent\textbf{Who remembers the file offset:}
+\vspace{0.22\textheight}
+
+\Needspace{0.24\textheight}
+\noindent\textbf{Suppose} you read 5 bytes, then read again.
+\vspace{0.14\textheight}
+
+\Needspace{0.20\textheight}
+\noindent\textbf{Example:} \texttt{fseek(fstream, 16, SEEK\_SET)}
+\vspace{0.12\textheight}
+
+\newpage
+\Needspace{0.55\textheight}
+\noindent\textbf{Picture:} file as a row of bytes --- before a 5-byte read, after it, after that \texttt{fseek}
+\begin{framed}
+\begin{minipage}[t][0.44\textheight]{\textwidth}
+\vspace{0.4em}
+\end{minipage}
+\end{framed}
+
+\vspace{2em}
+\begin{center}
+\textit{This handout may not cover every topic from the source slides.}
+\end{center}
+
+\end{document}

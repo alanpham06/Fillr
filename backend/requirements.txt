@@ -1,1 +1,5 @@
 pymupdf
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
