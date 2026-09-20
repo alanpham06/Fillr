@@ -32,8 +32,8 @@ function toPixel(points, width, height) {
   return points.map((point) => ({ x: point.x * width, y: point.y * height }));
 }
 
-function hitsStroke(stroke, point, width, height) {
-  const radius = ERASER_RADIUS_PX + (stroke.width * width) / 2;
+function hitsStroke(stroke, point, width, height, eraserRadius) {
+  const radius = eraserRadius + (stroke.width * width) / 2;
   return polylineHitsPoint(toPixel(stroke.points, width, height), point.x, point.y, radius);
 }
 
@@ -46,6 +46,7 @@ export default function InkOverlay({
   height,
   tool,
   opacity = 1,
+  eraserRadius = ERASER_RADIUS_PX,
   onStrokeComplete,
   onEraseStrokes,
 }) {
@@ -64,7 +65,11 @@ export default function InkOverlay({
         return;
       }
       const hits = strokesRef.current
-        .filter((stroke) => !erasedRef.current.has(stroke.id) && hitsStroke(stroke, point, width, height))
+        .filter(
+          (stroke) =>
+            !erasedRef.current.has(stroke.id) &&
+            hitsStroke(stroke, point, width, height, eraserRadius),
+        )
         .map((stroke) => stroke.id);
       if (hits.length === 0) {
         return;
@@ -72,7 +77,7 @@ export default function InkOverlay({
       hits.forEach((id) => erasedRef.current.add(id));
       onEraseStrokes?.(hits);
     },
-    [height, onEraseStrokes, width],
+    [eraserRadius, height, onEraseStrokes, width],
   );
 
   const scheduleLiveFrame = useCallback(() => {

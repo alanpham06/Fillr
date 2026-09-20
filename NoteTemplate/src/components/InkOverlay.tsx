@@ -19,6 +19,7 @@ export type InkOverlayProps = {
   widthNorm: number;
   tool: DrawTool;
   opacity?: number;
+  eraserRadius?: number;
   onStrokeComplete: (stroke: WorkspaceStroke) => void;
   onEraseStrokes?: (ids: string[]) => void;
   onDrawingChange?: (isDrawing: boolean) => void;
@@ -51,8 +52,9 @@ function hitsStroke(
   point: Point,
   width: number,
   height: number,
+  eraserRadius: number,
 ): boolean {
-  const radius = ERASER_RADIUS_PX + (stroke.width * width) / 2;
+  const radius = eraserRadius + (stroke.width * width) / 2;
   return polylineHitsPoint(toPixel(stroke.points, width, height), point.x, point.y, radius);
 }
 
@@ -86,6 +88,7 @@ export function InkOverlay({
   widthNorm,
   tool,
   opacity = 1,
+  eraserRadius = ERASER_RADIUS_PX,
   onStrokeComplete,
   onEraseStrokes,
   onDrawingChange,
@@ -100,6 +103,7 @@ export function InkOverlay({
   const widthRef = useRef(widthNorm);
   const toolRef = useRef(tool);
   const opacityRef = useRef(opacity);
+  const eraserRadiusRef = useRef(eraserRadius);
   const strokesRef = useRef(strokes);
   const erasedRef = useRef<Set<string>>(new Set());
   const onStrokeCompleteRef = useRef(onStrokeComplete);
@@ -111,6 +115,7 @@ export function InkOverlay({
   widthRef.current = widthNorm;
   toolRef.current = tool;
   opacityRef.current = opacity;
+  eraserRadiusRef.current = eraserRadius;
   strokesRef.current = strokes;
   onStrokeCompleteRef.current = onStrokeComplete;
   onEraseStrokesRef.current = onEraseStrokes;
@@ -122,7 +127,11 @@ export function InkOverlay({
       return;
     }
     const hits = strokesRef.current
-      .filter((stroke) => !erasedRef.current.has(stroke.id) && hitsStroke(stroke, point, width, height))
+      .filter(
+        (stroke) =>
+          !erasedRef.current.has(stroke.id) &&
+          hitsStroke(stroke, point, width, height, eraserRadiusRef.current),
+      )
       .map((stroke) => stroke.id);
     if (hits.length === 0) {
       return;

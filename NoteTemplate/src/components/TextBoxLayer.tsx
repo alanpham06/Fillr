@@ -15,7 +15,7 @@ import {
   type ResizeHandle,
   type WorkspaceTextBox,
 } from '../lib/workspaceTypes';
-import { colors, radii } from '../theme';
+import { colors } from '../theme';
 
 const HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
@@ -153,35 +153,6 @@ function TextBox({
     }
   }, [editing, enabled, selected]);
 
-  const drag = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onShouldBlockNativeResponder: () => true,
-        onPanResponderGrant: () => {
-          startRef.current = {
-            x: boxRef.current.x,
-            y: boxRef.current.y,
-            width: boxRef.current.width,
-            height: boxRef.current.height,
-          };
-          onSelectRef.current();
-          setEditing(false);
-          inputRef.current?.blur();
-        },
-        onPanResponderMove: (_, gesture) => {
-          onChangeRef.current(
-            movedBox(startRef.current, boxRef.current, gesture.dx, gesture.dy, pageWidth, pageHeight),
-          );
-        },
-      }),
-    [pageHeight, pageWidth],
-  );
-
   const boxDrag = useMemo(
     () =>
       PanResponder.create({
@@ -248,7 +219,7 @@ function TextBox({
   const top = box.y * pageHeight;
   const width = Math.max(80, box.width * pageWidth);
   const height = Math.max(28, box.height * pageHeight);
-  const fontSize = Math.max(12, box.fontSize * pageHeight);
+  const fontSize = Math.max(4, box.fontSize * pageHeight);
   const maxMeasureWidth = Math.max(80, (1 - PAGE_MARGIN - box.x) * pageWidth - 16);
 
   return (
@@ -257,19 +228,9 @@ function TextBox({
       style={[styles.wrap, { left, top, width, height }]}
     >
       {enabled && selected ? (
-        <View style={styles.handleRow}>
-          <View
-            collapsable={false}
-            style={styles.handle}
-            {...drag.panHandlers}
-            accessibilityLabel="Move text box"
-          >
-            <Text style={styles.handleMark}>⠿ Move</Text>
-          </View>
-          <Pressable onPress={onRemove} style={styles.remove} accessibilityLabel="Delete text box">
-            <Text style={styles.removeLabel}>×</Text>
-          </Pressable>
-        </View>
+        <Pressable onPress={onRemove} style={styles.remove} accessibilityLabel="Delete text box">
+          <Text style={styles.removeLabel}>×</Text>
+        </Pressable>
       ) : null}
       <View
         collapsable={false}
@@ -277,7 +238,7 @@ function TextBox({
         style={[
           styles.box,
           {
-            borderColor: selected ? colors.teal : 'transparent',
+            borderColor: selected ? 'rgba(31, 77, 74, 0.45)' : 'transparent',
             minHeight: height,
           },
         ]}
@@ -393,31 +354,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   box: {
-    backgroundColor: 'rgba(255, 253, 248, 0.86)',
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderRadius: radii.button,
-  },
-  handleRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -36,
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(31, 77, 74, 0.92)',
-    borderRadius: radii.button,
-  },
-  handle: {
-    flex: 1,
-    minHeight: 34,
-    justifyContent: 'center',
-    paddingLeft: 10,
-  },
-  handleMark: {
-    color: colors.cream,
-    fontSize: 13,
-    fontWeight: '700',
+    borderRadius: 4,
   },
   input: {
     paddingHorizontal: 8,
@@ -431,15 +370,21 @@ const styles = StyleSheet.create({
     top: 6,
   },
   remove: {
-    width: 36,
-    height: 34,
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    zIndex: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(31, 77, 74, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   removeLabel: {
     color: colors.cream,
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 14,
     fontWeight: '600',
   },
   resizeHit: {

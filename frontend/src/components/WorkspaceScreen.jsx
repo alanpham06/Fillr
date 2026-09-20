@@ -11,16 +11,21 @@ import {
   COLOR_ORDER,
   DRAW_TOOLS,
   DRAW_TOOL_LABELS,
+  DEFAULT_FONT_PT,
+  DEFAULT_TOOL_SIZES,
+  clampStrokePt,
   emptyPage,
-  FONT_SIZE_ORDER,
-  FONT_SIZES,
-  fontSizeName,
+  fontSizeToPt,
   HIGHLIGHTER_OPACITY,
-  HIGHLIGHTER_WIDTH_PX,
   INK_COLORS,
+  MAX_FONT_PT,
+  MIN_FONT_PT,
   pageHasInk,
-  PEN_WIDTH_PX,
   placedTextBox,
+  ptToFontSize,
+  STROKE_LIMITS,
+  strokePtToNorm,
+  strokePtToScreenPx,
   strokeOpacity,
   strokeTool,
 } from "../lib/workspaceTypes.js";
@@ -45,9 +50,10 @@ export default function WorkspaceScreen({ doc, onClose }) {
   const [pages, setPages] = useState({});
   const [mode, setMode] = useState("write");
   const [drawTool, setDrawTool] = useState("pen");
+  const [toolSizes, setToolSizes] = useState({ ...DEFAULT_TOOL_SIZES });
   const [colorName, setColorName] = useState("Black");
   const [colorOpen, setColorOpen] = useState(false);
-  const [fontName, setFontName] = useState("M");
+  const [fontPt, setFontPt] = useState(DEFAULT_FONT_PT);
   const [textBold, setTextBold] = useState(false);
   const [textItalic, setTextItalic] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState(null);
@@ -220,7 +226,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
             id,
             ...placedTextBox(x, y),
             text: "",
-            fontSize: FONT_SIZES[fontName],
+            fontSize: ptToFontSize(fontPt),
             color: INK_COLORS[colorName],
             bold: textBold,
             italic: textItalic,
@@ -229,7 +235,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
       }));
       setSelectedTextId(id);
     },
-    [colorName, fontName, page, textBold, textItalic, updatePage],
+    [colorName, fontPt, page, textBold, textItalic, updatePage],
   );
 
   const handleChangeText = useCallback(
@@ -247,7 +253,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
     if (!box) {
       return;
     }
-    setFontName(fontSizeName(box.fontSize));
+    setFontPt(fontSizeToPt(box.fontSize));
     setTextBold(Boolean(box.bold));
     setTextItalic(Boolean(box.italic));
     const match = COLOR_ORDER.find((name) => INK_COLORS[name].toLowerCase() === box.color.toLowerCase());
@@ -281,14 +287,29 @@ export default function WorkspaceScreen({ doc, onClose }) {
     [colorName],
   );
 
-  const applyFontSize = useCallback(
-    (name) => {
-      setFontName(name);
-      if (selectedTextId) {
-        handleChangeText(selectedTextId, { fontSize: FONT_SIZES[name] });
-      }
+  const applyStrokeSize = useCallback(
+    (raw) => {
+      const parsed = Number.parseFloat(String(raw));
+      const next = Number.isFinite(parsed) ? clampStrokePt(drawTool, parsed) : toolSizes[drawTool];
+      setToolSizes((prev) => ({ ...prev, [drawTool]: next }));
+      return next;
     },
-    [handleChangeText, selectedTextId],
+    [drawTool, toolSizes],
+  );
+
+  const applyFontSize = useCallback(
+    (raw) => {
+      const parsed = Number.parseInt(String(raw), 10);
+      const next = Number.isFinite(parsed)
+        ? Math.min(MAX_FONT_PT, Math.max(MIN_FONT_PT, parsed))
+        : fontPt;
+      setFontPt(next);
+      if (selectedTextId) {
+        handleChangeText(selectedTextId, { fontSize: ptToFontSize(next) });
+      }
+      return next;
+    },
+    [fontPt, handleChangeText, selectedTextId],
   );
 
   const applyBold = useCallback(() => {
@@ -401,8 +422,9 @@ export default function WorkspaceScreen({ doc, onClose }) {
     return containRect(stage.width, stage.height, naturalWidth, naturalHeight);
   }, [imageSize.height, imageSize.width, stage.height, stage.width]);
 
-  const widthNorm =
-    (drawTool === "highlighter" ? HIGHLIGHTER_WIDTH_PX : PEN_WIDTH_PX) / Math.max(pageRect.width, 1);
+  const strokePt = toolSizes[drawTool];
+  const strokeRange = STROKE_LIMITS[drawTool];
+  const widthNorm = strokePtToNorm(strokePt);
   const strokeAlpha = drawTool === "highlighter" ? HIGHLIGHTER_OPACITY : 1;
   const canUndo = current.strokes.length > 0 || current.texts.length > 0;
   const saveLabel =
@@ -412,10 +434,10 @@ export default function WorkspaceScreen({ doc, onClose }) {
     <div className="workspace-app">
       <header className="workspace-topbar">
         <button type="button" className="ghost workspace-back" onClick={handleBack}>
-          ← Notes
+          ← Workspace
         </button>
         <div className="workspace-title-block">
-          <p className="eyebrow">Workspace</p>
+          <p className="eyebrow">Editor</p>
           <h1>{doc.title}</h1>
         </div>
         <p className={`workspace-save${saveStatus === "error" ? " is-error" : ""}`}>{saveLabel}</p>
@@ -447,33 +469,50 @@ export default function WorkspaceScreen({ doc, onClose }) {
         </div>
 
         {mode === "write" ? (
-          <div className="segmented" role="radiogroup" aria-label="Drawing tool">
-            {DRAW_TOOLS.map((value) => (
-              <label key={value} className={drawTool === value ? "on" : ""}>
-                <input
-                  type="radio"
-                  name="drawTool"
-                  value={value}
-                  checked={drawTool === value}
-                  onChange={() => applyDrawTool(value)}
-                />
-                {DRAW_TOOL_LABELS[value]}
-              </label>
-            ))}
-          </div>
+          <>
+            <div className="segmented" role="radiogroup" aria-label="Drawing tool">
+              {DRAW_TOOLS.map((value) => (
+                <label key={value} className={drawTool === value ? "on" : ""}>
+                  <input
+                    type="radio"
+                    name="drawTool"
+                    value={value}
+                    checked={drawTool === value}
+                    onChange={() => applyDrawTool(value)}
+                  />
+                  {DRAW_TOOL_LABELS[value]}
+                </label>
+              ))}
+            </div>
+            <label className="font-size-field">
+              <span className="sr-only">Stroke size</span>
+              <input
+                type="number"
+                min={strokeRange.min}
+                max={strokeRange.max}
+                step={strokeRange.step}
+                value={strokePt}
+                aria-label="Stroke size in points"
+                onChange={(event) => applyStrokeSize(event.target.value)}
+              />
+              <span>pt</span>
+            </label>
+          </>
         ) : (
           <div className="workspace-tool-group">
-            {FONT_SIZE_ORDER.map((name) => (
-              <button
-                key={name}
-                type="button"
-                className={`chip${name === fontName ? " is-selected" : ""}`}
-                aria-pressed={name === fontName}
-                onClick={() => applyFontSize(name)}
-              >
-                {name}
-              </button>
-            ))}
+            <label className="font-size-field">
+              <span className="sr-only">Font size</span>
+              <input
+                type="number"
+                min={MIN_FONT_PT}
+                max={MAX_FONT_PT}
+                step={1}
+                value={fontPt}
+                aria-label="Font size in points"
+                onChange={(event) => applyFontSize(event.target.value)}
+              />
+              <span>pt</span>
+            </label>
             <button
               type="button"
               className={`chip chip-format${textBold ? " is-selected" : ""}`}
@@ -599,6 +638,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
                   height={pageRect.height}
                   tool={drawTool}
                   opacity={strokeAlpha}
+                  eraserRadius={strokePtToScreenPx(toolSizes.eraser, pageRect.width)}
                   onStrokeComplete={handleStroke}
                   onEraseStrokes={handleErase}
                 />

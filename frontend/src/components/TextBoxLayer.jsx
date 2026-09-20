@@ -201,7 +201,7 @@ function TextBox({
   const top = box.y * pageHeight;
   const width = Math.max(80, box.width * pageWidth);
   const height = Math.max(28, box.height * pageHeight);
-  const fontSize = Math.max(12, box.fontSize * pageHeight);
+  const fontSize = Math.max(4, box.fontSize * pageHeight);
   const maxMeasureWidth = Math.max(80, (1 - PAGE_MARGIN - box.x) * pageWidth - 16);
 
   return (
@@ -215,30 +215,18 @@ function TextBox({
       onClick={(event) => event.stopPropagation()}
     >
       {enabled && selected ? (
-        <div className="text-box-handle-row">
-          <div
-            className="text-box-handle"
-            data-role="handle"
-            onPointerDown={beginMove}
-            onPointerMove={movePointer}
-            onPointerUp={endPointer}
-            onPointerCancel={endPointer}
-          >
-            <span>⠿ Move</span>
-          </div>
-          <button
-            type="button"
-            className="text-box-remove"
-            aria-label="Delete text box"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-          >
-            ×
-          </button>
-        </div>
+        <button
+          type="button"
+          className="text-box-remove"
+          aria-label="Delete text box"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+        >
+          ×
+        </button>
       ) : null}
       <div
         ref={mirrorRef}
