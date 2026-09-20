@@ -10,3 +10,4 @@ frontend/dist/
 frontend/public/pdf.worker.min.mjs
 backend/data/
 Fillr-Note-Template-Generator/
+.env.local
