@@ -76,6 +76,10 @@ def _render_slot(block: dict, out: list[str]) -> None:
     h = _height(block.get("size"))
     out.append(rf"\Needspace{{{h}\textheight}}")
     out.append(rf"\deflabel{{{label}}}")
+    setup = _tex_escape(block.get("setup") or "").strip()
+    if setup:
+        # A tiny printed scaffold under the label (never the answer).
+        out.append(rf"\par\nopagebreak{{\small {setup}}}")
     out.append(rf"\vspace{{{h}\textheight}}")
     out.append("")
 
