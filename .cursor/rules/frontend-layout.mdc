@@ -1,0 +1,29 @@
+---
+description: Container-first layout and PDF pane resize rules
+globs: frontend/**/*.{js,jsx,css}
+alwaysApply: false
+---
+
+# Frontend layout
+
+Fill leftover space with a flex/grid chain. Never size panes with `100vh` minus a guessed header height.
+
+- `html/body/#root` are `height: 100%`. The app shell is `height: 100dvh` and `overflow: hidden`.
+- Every nested flex/grid child that should shrink uses `min-width: 0` and `min-height: 0`.
+- Side-by-side panes: `grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)`.
+- Measure a dedicated inner probe (`width: 100%`), not a padded scroller. Pass that width into `react-pdf` `Page`.
+- Use `ResizeObserver` + `requestAnimationFrame`. Skip state updates when the integer size did not change.
+- Do not stretch the PDF canvas with CSS `width: 100%` — that desyncs the text layer.
+
+```jsx
+// ❌ BAD
+<div className="pane-body" ref={ref}>
+  <Page width={Math.floor(entry.contentRect.width - 8)} />
+</div>
+
+// ✅ GOOD
+<div className="pane-body">
+  <div className="pdf-width-probe" ref={probeRef} />
+  {width > 0 ? <Page width={width} /> : null}
+</div>
+```
