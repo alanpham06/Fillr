@@ -1,0 +1,270 @@
+\documentclass[12pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{framed}
+\usepackage{amssymb}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8}
+}
+
+\setlist[itemize]{leftmargin=*, itemsep=0.4em}
+
+\title{CS 449 -- Lecture 2 Note Template}
+\author{Dr.\ Jack Lange}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Turning work in with \texttt{tar}}
+
+This lecture starts with a lab tool, then spends most of its time on a bigger idea: how a C program gets data in and sends data out.
+
+\begin{itemize}
+  \item When would you create a \texttt{.tar.gz} versus extract one? What can go wrong if you mix up the flags?
+  \vspace{2.0em}
+  \item Write a command you would actually use to bundle this week's lab files, then the command a TA would use to unpack it.
+  \vspace{1.6em}
+\end{itemize}
+
+\begin{lstlisting}
+# create:   tar _______________________________
+# extract:  tar _______________________________
+\end{lstlisting}
+
+\vspace{1.4em}
+
+\section{Why C cares about order}
+
+The slides contrast C with Java before talking about input. That is the setup: if you do not know how C is parsed, the later code examples will look like magic failures.
+
+\begin{itemize}
+  \item In your own words, what does ``C is parsed top down'' change about how you write a file?
+  \vspace{2.2em}
+  \item Compare C and Java: which kinds of names still have to appear above their use in Java, and which do not? Why might C be stricter?
+  \vspace{2.2em}
+  \item What would break if you called a helper function that is defined later in the same \texttt{.c} file, with no declaration above \texttt{main}?
+  \vspace{1.8em}
+\end{itemize}
+
+\begin{lstlisting}
+/* Predict: does this compile in C? Why or why not? */
+int main(void) {
+    foo();
+}
+
+void foo(void) {
+    /* what would you add or move? */
+}
+\end{lstlisting}
+
+\vspace{1.8em}
+
+\section{Three ways a C program gets input}
+
+The rest of the lecture is really one question: where can bytes come from, and who is in charge of them?
+
+\subsection{Command-line arguments}
+\begin{itemize}
+  \item Imagine you run \texttt{./cmdargs hello 42}. What is in \texttt{argc}, \texttt{argv[0]}, and \texttt{argv[1]}? What is \emph{not} in \texttt{argv}?
+  \vspace{2.2em}
+  \item When is \texttt{argv} a better input tool than typing into the program after it starts?
+  \vspace{2.0em}
+\end{itemize}
+
+\begin{lstlisting}
+int main(int argc, char *argv[]) {
+    // If the user forgot an argument, what should you check?
+    // ________________________________
+}
+\end{lstlisting}
+
+\vspace{1.2em}
+
+\subsection{Console input with \texttt{scanf}}
+\begin{itemize}
+  \item \texttt{scanf} does not just ``read text.'' What job is the format string doing, and why does the \texttt{\&} matter?
+  \vspace{2.2em}
+  \item A classmate writes \texttt{scanf("\%d", n);} (no \texttt{\&}) and the program crashes or silently corrupts memory. What did they misunderstand?
+  \vspace{2.2em}
+  \item Why does the lecture care about the return value? Invent a tiny input that should make \texttt{scanf} fail.
+  \vspace{2.0em}
+\end{itemize}
+
+\begin{lstlisting}
+int n;
+int matched = scanf("%d", /* what belongs here? */);
+/* If matched is 0, what happened, and what is in n? */
+\end{lstlisting}
+
+\vspace{1.8em}
+
+\section{Streams: the idea that ties input and output together}
+
+\texttt{argv} is a one-shot list. \texttt{scanf} is already talking to a stream. The lecture's third mechanism is the general version of that idea.
+
+\begin{itemize}
+  \item Explain FIFO like you are teaching a friend who has never heard the term. Why does ``in order'' matter for a console?
+  \vspace{2.2em}
+  \item What is each of \texttt{stdin}, \texttt{stdout}, and \texttt{stderr} \emph{for}? When would you print an error to \texttt{stderr} instead of \texttt{stdout}?
+  \vspace{2.4em}
+  \item The slides also mention files, devices, and network sockets as streams. What is the shared mental model?
+  \vspace{2.0em}
+\end{itemize}
+
+\noindent\textbf{Diagram: sketch a stream from your program, through the OS, to the console (or a file). Mark the buffer and a flush.}
+\begin{framed}
+\begin{minipage}[t][0.35\textheight]{\textwidth}
+\vspace{0.6em}
+\textit{Do not copy a figure from memory. Draw the pieces and label who waits if the buffer is not flushed.}
+\end{minipage}
+\end{framed}
+
+\vspace{1.2em}
+
+\subsection{Buffering, \texttt{printf}, and \texttt{fprintf}}
+\begin{itemize}
+  \item Why can a program look ``stuck'' or print nothing until it exits, even if you called \texttt{printf}?
+  \vspace{2.2em}
+  \item \texttt{printf} picks a stream for you. \texttt{fprintf} makes you pick. When is the extra argument worth it?
+  \vspace{2.2em}
+\end{itemize}
+
+\begin{lstlisting}
+int printf(const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+/* Write one situation where fprintf is the better call. */
+/* ___________________________________________________ */
+\end{lstlisting}
+
+\vspace{1.8em}
+
+\section{The shell already knows about streams}
+
+Unix ``everything is a file'' is why the same program can talk to a keyboard, a file, or another program without being rewritten.
+
+\begin{itemize}
+  \item In your own words, why can the shell mix files and console streams so easily?
+  \vspace{2.2em}
+  \item You ran \texttt{ls > files.out} yesterday and today you run \texttt{ls >> files.out}. What is different about the file afterward? When is each the one you want?
+  \vspace{2.4em}
+  \item Predict what \texttt{wc < files.out} does without looking it up from the slide. Who is ``typing'' into \texttt{wc}?
+  \vspace{2.2em}
+  \item Walk through \texttt{ls | grep .c | wc} as a story: what does each stage receive, and what does it pass on?
+  \vspace{2.4em}
+\end{itemize}
+
+\vspace{0.6em}
+
+\section{Special streams the OS leaves lying around}
+
+These look like files in the filesystem, but they are features.
+
+\begin{itemize}
+  \item A program is too noisy. You want to keep the program and throw away its output. Which special file do you aim at, and what happens to reads versus writes?
+  \vspace{2.4em}
+  \item The slides say \texttt{/dev/zero} is different from \texttt{/dev/null}. How?
+  \vspace{2.4em}
+  \item When might a program read from \texttt{/dev/random} instead of those two?
+  \vspace{2.0em}
+\end{itemize}
+
+\vspace{1.2em}
+
+\section{When you, not the shell, open the file}
+
+Command-line arguments and the three console streams are set up for you. A file you name in code is your problem.
+
+\begin{itemize}
+  \item Why can a text file, once opened, be treated like the console? What functions become the file versions of \texttt{printf} / \texttt{scanf}?
+  \vspace{2.2em}
+  \item What does a \texttt{NULL} from \texttt{fopen} mean in real life (permissions, bad path, \ldots)? What should a careful program do next?
+  \vspace{2.4em}
+\end{itemize}
+
+\begin{lstlisting}
+FILE *file = fopen(name, /* which mode, and why? */);
+if (file == NULL) {
+    /* what belongs here? */
+}
+/* talk to the file */
+fclose(file);
+\end{lstlisting}
+
+\vspace{1.8em}
+
+\section{What actually lands on disk: ASCII versus raw bytes}
+
+This is the lecture's ``aha'' about why printing a number and writing a number are not the same.
+
+\begin{itemize}
+  \item What problem is ASCII solving? Why is the character \texttt{"7"} not the same thing as the integer 7 sitting in a variable?
+  \vspace{2.4em}
+  \item The slides show \texttt{fprintf("\%d\textbackslash n", i)} for $i = 7$ and $i = -7$. Before you copy their hex, predict: why do extra bytes appear in the file that were not the in-memory integer?
+  \vspace{2.4em}
+\end{itemize}
+
+\noindent\textbf{Diagram: for one of those examples, show memory on the left and the file on the right. Label which side is ``the number'' and which side is ``text.''}
+\begin{framed}
+\begin{minipage}[t][0.35\textheight]{\textwidth}
+\vspace{0.6em}
+\textit{Use the slide values if you want ($0$x$00000007$ vs $0$x$37$, $0$x$0$a). The point is the comparison, not the hex trivia.}
+\end{minipage}
+\end{framed}
+
+\vspace{1.2em}
+
+\section{Explicit copies: \texttt{fread} and \texttt{fwrite}}
+
+\begin{itemize}
+  \item The lecture says an application can only operate on data in memory. Why does that force you to copy to and from files yourself?
+  \vspace{2.2em}
+  \item File access is ``like memory, but explicit.'' What is implicit about reading a variable, and what is explicit about \texttt{fread}?
+  \vspace{2.4em}
+  \item In \texttt{fwrite(\&x, sizeof(x), 1, outfile)}, what is each argument responsible for? What goes wrong if you pass \texttt{x} instead of \texttt{\&x}?
+  \vspace{2.4em}
+\end{itemize}
+
+\begin{lstlisting}
+int x = 5;
+FILE *outfile = fopen(argv[1], "wb");
+fwrite(&x, sizeof(x), 1, outfile);
+/* After this, how does the file differ from fprintf("%d", x)? */
+fclose(outfile);
+\end{lstlisting}
+
+\vspace{1.8em}
+
+\section{The file position you cannot see}
+
+\texttt{fread} / \texttt{fwrite} do not take an offset. Something else is remembering where you are.
+
+\begin{itemize}
+  \item If a file is an array of bytes, who is keeping the current index, and when does that index move?
+  \vspace{2.2em}
+  \item You read 5 bytes, then read again. Where does the second read start? Why can that surprise you?
+  \vspace{2.2em}
+  \item What is \texttt{fseek(fstream, 16, SEEK\_SET)} asking the system to do? Invent a reason you would need that instead of reading from the start every time.
+  \vspace{2.4em}
+\end{itemize}
+
+\noindent\textbf{Diagram: draw a file as a row of bytes. Mark the position before a 5-byte read, after it, and after that \texttt{fseek}.}
+\begin{framed}
+\begin{minipage}[t][0.35\textheight]{\textwidth}
+\vspace{0.6em}
+\textit{Leave room for arrows. The picture should explain the API, not decorate the page.}
+\end{minipage}
+\end{framed}
+
+\vspace{2.2em}
+\begin{center}
+\textit{This template may not cover every topic from the source slides.}
+\end{center}
+
+\end{document}

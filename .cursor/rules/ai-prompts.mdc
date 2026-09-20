@@ -1,26 +1,24 @@
 ---
-description: Nemotron prompts generate fill-in templates, not homework answers
+description: Prompts generate airy lecture note sheets; reference handouts for rhythm only
 globs: backend/**/*.{py,txt,md}
 alwaysApply: false
 ---
 
-# Nemotron prompts
+# Lecture-note prompts
 
-Turn extracted lecture text into a **fill-in template**. Leave blanks for the student. Honor toggles. Do not solve problems or write completed answers.
+Use a good handout as **rhythm** (label + huge blank), not a template to clone.
 
-- `definitions`: slots such as `Term: ________` or a short cue, not a full glossary entry unless the user chose a more-filled template.
-- `diagrams`: labeled empty space / caption, not a drawn or described finished diagram.
-- `code blocks`: empty or skeleton blocks with blanks, not working solutions.
-- More filled = extra cues and section headers. More blank = headings and empty space only.
-- Always include a disclaimer that topics may be missing.
+- Labels should fit the lecture (`How it works:`, `Signature:`, `Definition:`). Do not force theory labels onto systems slides.
+- Tiny printed setup is fine. Finished definitions, proofs, and answers are not.
+- Print slide questions; do not answer them.
+- No v1 Mad Libs. No v2 homework voice.
+- Size blanks to the expected answer: tiny token < short lines < paragraph < proof/diagram. Do not print the answer.
+- Keep a slot (label + blank) on one page. New page rather than split a question. Extra pages are fine.
 
 ```python
 # ❌ BAD
-"Using the lecture, solve every practice problem and define every term in full."
+"Definition (walk):  [1.6em]  What would break if..."
 
 # ✅ GOOD
-"""Create a lecture note template from the source text.
-Honor toggles: definitions={definitions}, diagrams={diagrams}, code_blocks={code_blocks}, density={density}.
-Leave blanks for the student. Do not answer homework or complete proofs.
-Reserve labeled slots for enabled sections. Add a short missing-topic disclaimer."""
+"How argv is laid out:  [0.20 textheight]  Example: ./prog hello 42"
 ```

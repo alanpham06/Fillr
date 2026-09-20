@@ -1,0 +1,11 @@
+.cursor/
+.env
+**/__pycache__/
+*.pyc
+frontend/node_modules/
+NoteTemplate/node_modules/
+NoteTemplate/.expo/
+**/.vite/
+frontend/dist/
+frontend/public/pdf.worker.min.mjs
+backend/data/

@@ -9,6 +9,8 @@ alwaysApply: false
 - Functional components only.
 - All FastAPI calls live in a client module (e.g. `frontend/src/api.js`), not inside components.
 - Core UI: file upload + toggles for definitions, diagrams, and code blocks (more filled vs more blank).
+- Preview PDFs in container-sized panes. See `frontend-layout.mdc` for resize rules.
+- Extract reusable hooks (e.g. `useContainerSize`) instead of inlining observers in components.
 - Render the generated template simply. Print/export comes later.
 - No homework chat, Q&A box, or "ask about this folder" UI.
 
