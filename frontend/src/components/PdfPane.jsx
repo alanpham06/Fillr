@@ -14,6 +14,8 @@ export default function PdfPane({
   file,
   emptyTitle,
   emptyBody,
+  actions,
+  onOpenWorkspace,
 }) {
   const [numPages, setNumPages] = useState(null);
   const [page, setPage] = useState(1);
@@ -34,6 +36,12 @@ export default function PdfPane({
           <h2>{title}</h2>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
+        {onOpenWorkspace && file ? (
+          <button type="button" className="primary pane-workspace-btn" onClick={onOpenWorkspace}>
+            Edit
+          </button>
+        ) : null}
+        {actions}
         {file ? (
           <div className="pager">
             <button

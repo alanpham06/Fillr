@@ -12,6 +12,11 @@ export default function SettingsSidebar({
   canGenerate,
   canDownload,
   fileInputRef,
+  notesInputRef,
+  canUploadNotes,
+  uploadingNotes,
+  filledFileName,
+  onNotesChosen,
 }) {
   function update(partial) {
     onSettingsChange({ ...settings, ...partial });
@@ -21,13 +26,13 @@ export default function SettingsSidebar({
     <aside className="sidebar">
       <section className="card">
         <h2>Lecture slides</h2>
-        <p className="muted">Upload a PDF of slides, notes, or a textbook chapter.</p>
+        <p className="muted">Upload a PDF or a photo of slides, notes, or a textbook chapter.</p>
 
         <input
           ref={fileInputRef}
           className="sr-only"
           type="file"
-          accept="application/pdf,.pdf"
+          accept="application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg,.webp"
           onChange={(event) => {
             const next = event.target.files?.[0];
             if (next) {
@@ -68,7 +73,7 @@ export default function SettingsSidebar({
               }
             }}
           >
-            <strong>Drop a PDF here</strong>
+            <strong>Drop a PDF or image here</strong>
             <span>or click to browse</span>
           </button>
         )}
@@ -140,6 +145,40 @@ export default function SettingsSidebar({
         </label>
       </section>
 
+      {canUploadNotes ? (
+        <section className="card">
+          <h2>Completed notes</h2>
+          <p className="muted">
+            Photograph or scan the filled sheet. We OCR the writing and drop it
+            back onto the template in teal ink. Handwriting accuracy is limited.
+          </p>
+          <input
+            ref={notesInputRef}
+            className="sr-only"
+            type="file"
+            accept="application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg,.webp"
+            onChange={(event) => {
+              const next = event.target.files?.[0];
+              if (next) {
+                onNotesChosen(next);
+              }
+              event.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={uploadingNotes}
+            onClick={() => notesInputRef.current?.click()}
+          >
+            {uploadingNotes ? "Reading notes…" : "Upload completed notes"}
+          </button>
+          {filledFileName ? (
+            <p className="muted notes-status">Loaded {filledFileName}</p>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="actions">
         <button
           type="button"
@@ -155,7 +194,7 @@ export default function SettingsSidebar({
           disabled={!canDownload}
           onClick={onDownload}
         >
-          Download PDF
+          Download template
         </button>
       </div>
     </aside>

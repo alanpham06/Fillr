@@ -3,20 +3,16 @@
 from __future__ import annotations
 
 import re
-import shutil
 from pathlib import Path
 
 import pymupdf
 
 from compile_latex import LatexCompileError, compile_tex
-from config import OUTPUT_DIR, TEX_DIR
+from config import TEX_DIR
 from models import Density, TextSize
 from services.extractor import PageText
+from services.latex_style import INK_RGB, SLOTDEF_RGB, SLOTDRAW_RGB, preamble_lines
 from services.storage import SourceRecord
-
-_SAMPLE_PDFS = (
-    (("cs449",), OUTPUT_DIR / "pitt-cs449-lecture-2-v2.pdf"),
-)
 
 _HEADING_SKIP = re.compile(
     r"^(\d+(\s*/\s*\d+)*|"
@@ -35,13 +31,7 @@ def generate_stub_pdf(
     include_diagrams: bool,
     include_code: bool,
 ) -> Path:
-    """Return a real PDF: matching sample, compiled stub, or PyMuPDF fallback."""
-    sample = _matching_sample(source.filename)
-    if sample is not None:
-        output_pdf.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(sample, output_pdf)
-        return output_pdf
-
+    """Return a real PDF: compiled stub, or PyMuPDF fallback."""
     tex_path = TEX_DIR / f"{output_pdf.stem}.tex"
     tex_path.parent.mkdir(parents=True, exist_ok=True)
     tex_path.write_text(
@@ -66,14 +56,6 @@ def generate_stub_pdf(
             include_diagrams=include_diagrams,
             include_code=include_code,
         )
-
-
-def _matching_sample(filename: str) -> Path | None:
-    lowered = filename.lower().replace(" ", "")
-    for tokens, path in _SAMPLE_PDFS:
-        if path.is_file() and all(token in lowered for token in tokens):
-            return path
-    return None
 
 
 def build_stub_tex(
@@ -101,9 +83,7 @@ def build_stub_tex(
         r"\usepackage[margin=0.85in]{geometry}",
         r"\usepackage{enumitem}",
         r"\usepackage{listings}",
-        r"\usepackage{xcolor}",
-        r"\usepackage{framed}",
-        r"\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{gray!8}}",
+        *preamble_lines(),
         rf"\title{{{_tex_escape(title)}}}",
         r"\author{Lecture note template}",
         r"\date{}",
@@ -141,30 +121,30 @@ def build_stub_tex(
 
     for heading in headings:
         sections.append(rf"\section{{{_tex_escape(heading)}}}")
-        sections.append(r"\begin{itemize}[leftmargin=*]")
         if density == "more_full":
-            sections.append(r"  \item Key idea: \hrulefill")
-            sections.append(rf"  \vspace{{{blank_skip}}}")
-            sections.append(r"  \item Why it matters: \hrulefill")
-            sections.append(rf"  \vspace{{{blank_skip}}}")
-            sections.append(r"  \item Question to ask in lecture: \hrulefill")
+            slot_labels = ["Key idea:", "Why it matters:", "Question to ask in lecture:"]
         else:
-            sections.append(r"  \item \hrulefill")
-            sections.append(rf"  \vspace{{{blank_skip}}}")
-            sections.append(r"  \item \hrulefill")
-            sections.append(rf"  \vspace{{{blank_skip}}}")
-        sections.append(r"\end{itemize}")
+            slot_labels = ["Notes:", ""]
+        for slot in slot_labels:
+            sections.append(r"\Needspace{0.16\textheight}")
+            if slot:
+                sections.append(rf"\deflabel{{{_tex_escape(slot)}}}")
+            sections.append(rf"\vspace{{{blank_skip}}}")
 
         if include_diagrams:
             sections.extend(
                 [
-                    rf"\noindent\textbf{{Diagram slot: {_tex_escape(heading)}}}",
+                    r"\Needspace{0.28\textheight}",
+                    rf"\drawlabel{{Picture: {_tex_escape(heading)}}}",
+                    r"{\color{slotdraw}",
                     r"\begin{framed}",
+                    r"\color{ink}",
                     r"\begin{minipage}[t][0.22\textheight]{\textwidth}",
                     r"\vspace{0.4em}",
                     r"\textit{Sketch the idea. Label the parts. Leave it unfinished if needed.}",
                     r"\end{minipage}",
                     r"\end{framed}",
+                    r"}",
                     r"\vspace{1em}",
                 ]
             )
@@ -172,6 +152,8 @@ def build_stub_tex(
         if include_code:
             sections.extend(
                 [
+                    r"\Needspace{0.18\textheight}",
+                    r"\drawlabel{Code:}",
                     r"\begin{lstlisting}",
                     "// Skeleton only --- fill in during lecture, do not paste a solution",
                     "________________",
@@ -237,7 +219,7 @@ def write_simple_pdf(
         page = doc.new_page()
         y = 64
 
-    def write(text: str, size: float, *, italic: bool = False) -> None:
+    def write(text: str, size: float, *, italic: bool = False, color=INK_RGB) -> None:
         nonlocal y
         new_page_if_needed(size + 8)
         page.insert_text(
@@ -245,6 +227,7 @@ def write_simple_pdf(
             text[:110],
             fontsize=size,
             fontname="helv" if not italic else "heit",
+            color=color,
         )
         y += size + 8
 
@@ -261,20 +244,24 @@ def write_simple_pdf(
 
     for heading in headings:
         write(heading, font + 2)
+        write("Key idea:", font, color=SLOTDEF_RGB)
         for _ in range(2):
             new_page_if_needed(blank_h)
             page.draw_line(pymupdf.Point(margin, y + 10), pymupdf.Point(margin + width, y + 10))
             y += blank_h
         if include_diagrams:
-            write(f"Diagram slot: {heading}", font, italic=True)
+            write(f"Picture: {heading}", font, italic=True, color=SLOTDRAW_RGB)
             new_page_if_needed(90)
             rect = pymupdf.Rect(margin, y, margin + width, y + 80)
-            page.draw_rect(rect)
+            page.draw_rect(rect, color=SLOTDRAW_RGB)
             y += 96
         if include_code:
-            write("Code skeleton (fill in during lecture)", font, italic=True)
+            write("Code:", font, italic=True, color=SLOTDRAW_RGB)
             new_page_if_needed(56)
-            page.draw_rect(pymupdf.Rect(margin, y, margin + width, y + 48))
+            page.draw_rect(
+                pymupdf.Rect(margin, y, margin + width, y + 48),
+                color=SLOTDRAW_RGB,
+            )
             y += 64
 
     y += 16

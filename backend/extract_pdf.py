@@ -1,11 +1,12 @@
 """Extract native text from a digital PDF with PyMuPDF.
 
 Proof of concept for the ingest pipeline: try embedded text first.
-OCR (Tesseract) is a later fallback for image-only pages.
+Pass --ocr to fall back to Tesseract on image-only pages (or images).
 
 Usage:
     python extract_pdf.py path/to/lecture.pdf
     python extract_pdf.py path/to/lecture.pdf -o extracted.txt
+    python extract_pdf.py path/to/scan.pdf --ocr
 """
 
 from __future__ import annotations
@@ -57,6 +58,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         help="Where to write the .txt file (default: next to the PDF)",
     )
+    parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help="OCR pages with almost no native text (and accept images)",
+    )
     return parser.parse_args(argv)
 
 
@@ -70,12 +76,24 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        pages = extract_pages(pdf_path)
+        if args.ocr:
+            from services.extractor import FallbackExtractor
+
+            extracted_pages = FallbackExtractor().extract(pdf_path)
+            pages = [(page.page_number, page.text) for page in extracted_pages]
+            methods = {page.method for page in extracted_pages}
+        else:
+            pages = extract_pages(pdf_path)
+            extracted_pages = None
+            methods = {"pymupdf"}
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     except pymupdf.FileDataError as exc:
         print(f"error: could not open PDF ({exc})", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 1
 
     write_txt(pages, output_path)
@@ -83,6 +101,9 @@ def main(argv: list[str] | None = None) -> int:
     extracted = sum(1 for _, text in pages if text)
     print(f"Wrote {output_path}")
     print(f"Pages: {len(pages)} total, {extracted} with extractable text")
+    if extracted_pages is not None:
+        ocr_n = sum(1 for page in extracted_pages if page.method == "tesseract")
+        print(f"Methods: {', '.join(sorted(methods))} ({ocr_n} page(s) via Tesseract)")
     return 0
 
 

@@ -23,13 +23,13 @@ THE SWEET SPOT
 - GOOD: a label naming the idea, then a blank sized to that answer. Short idea, short gap. Proof or sketch, a big gap. The student writes the lecture.
 
 ONE SHAPE (illustrative only --- rewrite labels for THIS source)
-\noindent\textbf{argv[0] is:}          % short expected answer
+\deflabel{argv[0] is:}          % short expected answer
 \vspace{0.12\textheight}
 
-\noindent\textbf{How buffering works:} % longer explanation
+\deflabel{How buffering works:} % longer explanation
 \vspace{0.24\textheight}
 
-\noindent\textbf{Picture:} stream and flush
+\drawlabel{Picture:} stream and flush
 % framed box ~0.42\textheight if diagrams are on
 
 HOW TO BUILD IT
@@ -90,6 +90,23 @@ REQUIRED PACKAGES
 \usepackage{framed}
 \usepackage{amssymb}
 \usepackage{needspace}
+
+COLOR (restrained --- a course handout, not a sticker sheet)
+Define once after the packages:
+
+\definecolor{ink}{HTML}{1F1B16}
+\definecolor{slotdef}{HTML}{1F4D4A}
+\definecolor{slotdraw}{HTML}{8A6A2F}
+\color{ink}
+\newcommand{\deflabel}[1]{\noindent\textcolor{slotdef}{\textbf{#1}}}
+\newcommand{\drawlabel}[1]{\noindent\textcolor{slotdraw}{\textbf{#1}}}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{slotdraw!6},rulecolor=\color{slotdraw}}
+
+Use color only as a label cue:
+- Definition-like / How it works / Signature / Compare slots: \deflabel{Label:}
+- Picture captions and the frame rule: \drawlabel{Picture:} then a framed box whose rule is slotdraw. Body inside the frame stays ink. Do not draw the figure.
+- Code holes: listing frame in slotdraw. Do not rainbow keywords or invent a working program.
+- Body text, blanks, and \vspace stay ink. No decorative boxes around every slot. No clipart. Two accents only.
 
 SOURCE TEXT
 {{source_text}}

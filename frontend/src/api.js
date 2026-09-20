@@ -71,18 +71,76 @@ export async function fetchPdfBlob(pathOrUrl) {
   return URL.createObjectURL(await response.blob());
 }
 
-export async function downloadTemplate(templateId, filename) {
-  const response = await fetch(templateFileUrl(templateId));
+export function filledFileUrl(templateId) {
+  return `${API_BASE}/templates/${templateId}/filled`;
+}
+
+export async function uploadNotes(templateId, file) {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch(`${API_BASE}/templates/${templateId}/notes`, {
+    method: "POST",
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.json();
+}
+
+async function downloadFromUrl(url, filename) {
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(await readError(response));
   }
   const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = url;
+  link.href = objectUrl;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(objectUrl);
+}
+
+export async function downloadTemplate(templateId, filename) {
+  await downloadFromUrl(templateFileUrl(templateId), filename);
+}
+
+export async function downloadFilled(templateId, filename) {
+  await downloadFromUrl(filledFileUrl(templateId), filename);
+}
+
+export function workspacePageUrl(kind, id, page) {
+  const params = new URLSearchParams({ kind, id });
+  return `${API_BASE}/workspace/pages/${page}?${params.toString()}`;
+}
+
+export async function fetchWorkspaceInfo(kind, id) {
+  const params = new URLSearchParams({ kind, id });
+  const response = await fetch(`${API_BASE}/workspace/document?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.json();
+}
+
+export async function exportWorkspace(payload) {
+  const response = await fetch(`${API_BASE}/workspace/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.json();
+}
+
+export async function downloadWorkspacePdf(pathOrUrl, filename) {
+  const url = pathOrUrl.startsWith("http")
+    ? pathOrUrl
+    : `${API_BASE}${pathOrUrl}`;
+  await downloadFromUrl(url, filename);
 }
