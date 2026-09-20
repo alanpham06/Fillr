@@ -1,10 +1,14 @@
 """Lecture-template PDF generator.
 
-Primary path: Nemotron (services.llm) returns a JSON note-sheet spec, which
+Only path: Nemotron (services.llm) returns a JSON note-sheet spec, which
 services.latex_render turns into compile-ready LaTeX, then Tectonic compiles it.
 If the model is unconfigured, unreachable, returns unusable output, or the
-compile fails, fall back to the local stub template so Generate always returns a
-downloadable PDF.
+compile fails, generation raises TemplateGenerationError so the API surfaces a
+real error rather than a misleading local stub.
+
+The stub builders below are retained only as a template source for the
+notes-merge path (services.notes) when a template's .tex is missing; they are
+no longer used to answer a Generate request.
 """
 
 from __future__ import annotations
@@ -27,17 +31,24 @@ from services.storage import SourceRecord
 logger = logging.getLogger(__name__)
 
 # How many times to try the model (each try = one generation + one compile)
-# before falling back to the local stub template.
+# before giving up and raising.
 LLM_ATTEMPTS = 2
+
+
+class TemplateGenerationError(RuntimeError):
+    """Raised when a real (Nemotron-backed) template could not be produced.
+
+    The message is user-facing: the API returns it as the error detail instead
+    of silently serving a local stub.
+    """
 
 
 @dataclass
 class GenerationResult:
-    """Outcome of a template generation."""
+    """Outcome of a successful template generation."""
 
     path: Path
-    used_llm: bool
-    note: str = ""
+    used_llm: bool = True
 
 
 def generate_template_pdf(
@@ -49,52 +60,47 @@ def generate_template_pdf(
     include_diagrams: bool,
     include_code: bool,
 ) -> GenerationResult:
-    """Generate via Nemotron when possible, else the local stub. Never raises
-    for an ordinary model/compile failure — it degrades to the stub instead."""
-    note = ""
-    if llm.is_configured():
-        # The model is stochastic: an occasional reply omits \end{document} or
-        # emits LaTeX that will not compile. Retry once before degrading.
-        last_exc: Exception | None = None
-        for attempt in range(1, LLM_ATTEMPTS + 1):
-            try:
-                spec = llm.generate_template_spec(
-                    source.pages,
-                    density=density,
-                    text_size=text_size,
-                    include_diagrams=include_diagrams,
-                    include_code=include_code,
-                )
-                latex = latex_render.render_template(
-                    spec,
-                    density=density,
-                    text_size=text_size,
-                    include_diagrams=include_diagrams,
-                    include_code=include_code,
-                )
-                tex_path = TEX_DIR / f"{output_pdf.stem}.tex"
-                tex_path.parent.mkdir(parents=True, exist_ok=True)
-                tex_path.write_text(latex, encoding="utf-8")
-                pdf = compile_tex(tex_path, output_pdf)
-                return GenerationResult(path=pdf, used_llm=True)
-            except (llm.LLMError, LatexCompileError, FileNotFoundError, ValueError) as exc:
-                last_exc = exc
-                logger.warning("Nemotron attempt %d/%d failed: %s", attempt, LLM_ATTEMPTS, exc)
-        note = f"Nemotron path failed after {LLM_ATTEMPTS} attempts, used local fallback: {last_exc}"
-        logger.warning(note)
-    else:
-        note = "NVIDIA_API_KEY not set; used local fallback template."
-        logger.warning(note)
+    """Generate the template via Nemotron. Raises TemplateGenerationError if the
+    model is unconfigured, unreachable, returns unusable output, or the compile
+    fails — the caller turns that into an API error rather than a stub PDF."""
+    if not llm.is_configured():
+        raise TemplateGenerationError(
+            "Note generation is unavailable: the language model is not configured "
+            "(NVIDIA_API_KEY is not set). Start the Nemotron backend and set the key, "
+            "then try again."
+        )
 
-    pdf = generate_stub_pdf(
-        source,
-        output_pdf,
-        density=density,
-        text_size=text_size,
-        include_diagrams=include_diagrams,
-        include_code=include_code,
-    )
-    return GenerationResult(path=pdf, used_llm=False, note=note)
+    # The model is stochastic: an occasional reply omits \end{document} or emits
+    # LaTeX that will not compile. Retry once before giving up.
+    last_exc: Exception | None = None
+    for attempt in range(1, LLM_ATTEMPTS + 1):
+        try:
+            spec = llm.generate_template_spec(
+                source.pages,
+                density=density,
+                text_size=text_size,
+                include_diagrams=include_diagrams,
+                include_code=include_code,
+            )
+            latex = latex_render.render_template(
+                spec,
+                density=density,
+                text_size=text_size,
+                include_diagrams=include_diagrams,
+                include_code=include_code,
+            )
+            tex_path = TEX_DIR / f"{output_pdf.stem}.tex"
+            tex_path.parent.mkdir(parents=True, exist_ok=True)
+            tex_path.write_text(latex, encoding="utf-8")
+            pdf = compile_tex(tex_path, output_pdf)
+            return GenerationResult(path=pdf)
+        except (llm.LLMError, LatexCompileError, FileNotFoundError, ValueError) as exc:
+            last_exc = exc
+            logger.warning("Nemotron attempt %d/%d failed: %s", attempt, LLM_ATTEMPTS, exc)
+
+    raise TemplateGenerationError(
+        f"Could not generate a note template after {LLM_ATTEMPTS} attempts: {last_exc}"
+    ) from last_exc
 
 _HEADING_SKIP = re.compile(
     r"^(\d+(\s*/\s*\d+)*|"

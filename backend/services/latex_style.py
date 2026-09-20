@@ -13,14 +13,32 @@ COLOR_DEFS = [
     r"\definecolor{slotdef}{HTML}{1F4D4A}",
     r"\definecolor{slotdraw}{HTML}{8A6A2F}",
     r"\definecolor{studentink}{HTML}{1A5F7A}",
+    # Code the student writes gets its own blue identity, distinct from the
+    # green slot labels and brown sketch labels.
+    r"\definecolor{codeink}{HTML}{0B3D91}",
+    r"\definecolor{codeframe}{HTML}{3B6FB5}",
     r"\color{ink}",
     r"\newcommand{\deflabel}[1]{\noindent\textcolor{slotdef}{\textbf{#1}}}",
     r"\newcommand{\drawlabel}[1]{\noindent\textcolor{slotdraw}{\textbf{#1}}}",
+    r"\newcommand{\codelabel}[1]{\noindent\textcolor{codeframe}{\textbf{\ttfamily #1}}}",
+    # Topic heading: reserve room so a heading never orphans at the page
+    # bottom (moves to the next page instead). Transitions read through a bold
+    # colored heading and generous spacing -- no rule (the rule was disliked).
+    r"\newcommand{\topicheading}[1]{\par\addvspace{1.6em}\Needspace{0.22\textheight}"
+    r"\noindent{\color{slotdef}\large\bfseries #1}\par\nobreak\vspace{0.6em}\nobreak}",
 ]
 
+# Code-writing box: monospace, blue ink, tinted blue frame — reads clearly as
+# "write your code here" and stands apart from handwriting slots.
 LSTSET = (
-    r"\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,"
-    r"backgroundcolor=\color{slotdraw!6},rulecolor=\color{slotdraw}}"
+    r"\lstdefinestyle{codewrite}{basicstyle=\ttfamily\small\color{codeink},"
+    r"breaklines=true,frame=single,framesep=6pt,xleftmargin=8pt,xrightmargin=4pt,"
+    r"backgroundcolor=\color{codeframe!8},rulecolor=\color{codeframe},"
+    # showlines=true keeps the trailing blank lines (writing room); without it
+    # listings trims them and the box collapses to the scaffold line.
+    r"showlines=true,aboveskip=0.5em,belowskip=0.6em}"
+    "\n"
+    r"\lstset{style=codewrite}"
 )
 
 # Last-resort PyMuPDF colors (0-1 RGB).

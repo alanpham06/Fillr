@@ -195,7 +195,7 @@ def generate_template_spec(
         completion = _client().chat.completions.create(
             model=NVIDIA_MODEL,
             messages=messages,
-            temperature=0.4,
+            temperature=0.2,
             max_tokens=6144,
             response_format={"type": "json_object"},
             # Mild penalty to discourage the model looping out endless sections;
