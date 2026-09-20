@@ -16,10 +16,10 @@ function formatDate(value) {
 
 function densityLabel(density) {
   if (density === "less_full") {
-    return "More blank";
+    return "More blank space";
   }
   if (density === "more_full") {
-    return "More filled in";
+    return "More structure";
   }
   return "";
 }

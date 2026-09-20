@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { SavedWorkspace, WorkspaceKind } from './workspaceTypes';
+import { normalizeWorkspacePages, type SavedWorkspace, type WorkspaceKind } from './workspaceTypes';
 
 const PREFIX = 'steelhacks.workspace.v1.';
 
@@ -24,7 +24,7 @@ export async function loadWorkspace(
     if (!pages || typeof pages !== 'object') {
       return null;
     }
-    return { version: 1, pages };
+    return { version: 1, pages: normalizeWorkspacePages(pages) };
   } catch {
     return null;
   }

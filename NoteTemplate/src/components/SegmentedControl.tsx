@@ -42,31 +42,29 @@ export function SegmentedControl<T extends string>({
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    backgroundColor: colors.paperDeep,
-    borderRadius: radii.pill,
-    padding: 3,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   option: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: radii.pill,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
   },
   optionOn: {
-    backgroundColor: colors.card,
-    shadowColor: '#1f1b16',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    backgroundColor: colors.teal,
+    borderColor: colors.teal,
   },
   label: {
     fontSize: 13,
-    color: colors.ink,
+    color: '#4b5563',
     fontWeight: '500',
   },
   labelOn: {
-    fontWeight: '700',
+    color: '#fff',
+    fontWeight: '600',
   },
 });

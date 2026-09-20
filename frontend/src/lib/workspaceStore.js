@@ -1,3 +1,5 @@
+import { normalizeWorkspacePages } from "./workspaceTypes.js";
+
 const PREFIX = "steelhacks.workspace.v1.";
 
 export function workspaceStorageKey(kind, id) {
@@ -17,7 +19,7 @@ export function loadWorkspace(kind, id) {
     if (!parsed.pages || typeof parsed.pages !== "object") {
       return null;
     }
-    return { version: 1, pages: parsed.pages };
+    return { version: 1, pages: normalizeWorkspacePages(parsed.pages) };
   } catch {
     return null;
   }

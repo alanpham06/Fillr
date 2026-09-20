@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 from uuid import uuid4
 
 import pymupdf
 
 from config import GENERATED_DIR, PAGES_DIR, ensure_data_dirs
-from models import WorkspaceExportRequest, WorkspaceKind
+from models import WorkspaceExportRequest, WorkspaceKind, WorkspaceTextBox, WorkspaceTextRun
 from services import storage
 
 PAGE_RENDER_ZOOM = 2.0
@@ -103,29 +104,77 @@ def flatten_annotations(body: WorkspaceExportRequest) -> Path:
                     opacity,
                 )
             for box in page_export.texts:
-                if not box.text.strip():
-                    continue
-                fontsize = max(6.0, box.font_size * height)
-                rect = pymupdf.Rect(
-                    box.x * width,
-                    box.y * height,
-                    (box.x + box.width) * width,
-                    (box.y + box.height) * height,
-                )
-                if rect.width < 8 or rect.height < 8:
-                    continue
-                page.insert_textbox(
-                    rect,
-                    box.text,
-                    fontsize=fontsize,
-                    fontname=_text_font(box.bold, box.italic),
-                    color=_hex_rgb(box.color),
-                    align=pymupdf.TEXT_ALIGN_LEFT,
-                )
+                _insert_text_box(page, box, width, height)
         document.save(dest)
     finally:
         document.close()
     return dest
+
+
+def _box_runs(box: WorkspaceTextBox) -> list[WorkspaceTextRun]:
+    if box.runs:
+        return [run for run in box.runs if run.text]
+    if not box.text:
+        return []
+    return [WorkspaceTextRun(text=box.text, bold=box.bold, italic=box.italic)]
+
+
+def _runs_html(runs: list[WorkspaceTextRun], fontsize: float, color: str) -> str:
+    parts: list[str] = []
+    for run in runs:
+        piece = escape(run.text).replace("\n", "<br>")
+        if run.bold and run.italic:
+            piece = f"<b><i>{piece}</i></b>"
+        elif run.bold:
+            piece = f"<b>{piece}</b>"
+        elif run.italic:
+            piece = f"<i>{piece}</i>"
+        parts.append(piece)
+    return (
+        f'<p style="margin:0;font-family:sans-serif;font-size:{fontsize}px;'
+        f'color:{color};line-height:1.35">{"".join(parts)}</p>'
+    )
+
+
+def _insert_text_box(page: pymupdf.Page, box: WorkspaceTextBox, width: float, height: float) -> None:
+    runs = _box_runs(box)
+    text = "".join(run.text for run in runs)
+    if not text.strip():
+        return
+    fontsize = max(6.0, box.font_size * height)
+    rect = pymupdf.Rect(
+        box.x * width,
+        box.y * height,
+        (box.x + box.width) * width,
+        (box.y + box.height) * height,
+    )
+    if rect.width < 8 or rect.height < 8:
+        return
+    color = _hex_rgb(box.color)
+    uniform = all(run.bold == runs[0].bold and run.italic == runs[0].italic for run in runs)
+    if uniform:
+        page.insert_textbox(
+            rect,
+            text,
+            fontsize=fontsize,
+            fontname=_text_font(runs[0].bold, runs[0].italic),
+            color=color,
+            align=pymupdf.TEXT_ALIGN_LEFT,
+        )
+        return
+    html = _runs_html(runs, fontsize, box.color)
+    inserter = getattr(page, "insert_htmlbox", None)
+    if inserter is not None:
+        inserter(rect, html)
+        return
+    page.insert_textbox(
+        rect,
+        text,
+        fontsize=fontsize,
+        fontname=_text_font(box.bold, box.italic),
+        color=color,
+        align=pymupdf.TEXT_ALIGN_LEFT,
+    )
 
 
 def _text_font(bold: bool, italic: bool) -> str:

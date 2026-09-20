@@ -1,31 +1,31 @@
 import { StyleSheet } from 'react-native';
 
 export const colors = {
-  paper: '#f4efe6',
-  paperDeep: '#ebe4d6',
-  card: '#fffdf8',
-  ink: '#1f1b16',
-  muted: '#6b6258',
-  line: '#d9d0c1',
-  teal: '#1f4d4a',
-  tealDeep: '#163836',
-  gold: '#b0894a',
-  cream: '#f7f3ea',
-  danger: '#8a2f2f',
-  dangerBg: '#f8e6e4',
-  infoBg: '#e7eee9',
-  pdfStage: '#f8f4ec',
+  paper: '#f7f6f3',
+  paperDeep: '#efece6',
+  card: '#ffffff',
+  ink: '#1f2933',
+  muted: '#6b7280',
+  line: '#e6e3dc',
+  teal: '#1d4ed8',
+  tealDeep: '#1e40af',
+  gold: '#1d4ed8',
+  cream: '#ffffff',
+  danger: '#b91c1c',
+  dangerBg: '#fef2f2',
+  infoBg: '#eef2ff',
+  pdfStage: '#efece6',
 };
 
 export const radii = {
-  card: 16,
-  button: 11,
-  pill: 999,
+  card: 12,
+  button: 8,
+  pill: 6,
 };
 
 export const shadow = {
-  shadowColor: '#2f2618',
-  shadowOpacity: 0.08,
+  shadowColor: '#1f2933',
+  shadowOpacity: 0.06,
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 6 },
   elevation: 2,

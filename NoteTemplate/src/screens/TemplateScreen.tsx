@@ -17,6 +17,7 @@ import {
   uploadNotes,
 } from '../api';
 import { Banner } from '../components/Banner';
+import { FillrLogo } from '../components/FillrLogo';
 import { PdfPreview } from '../components/PdfPreview';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { SettingsPanel } from '../components/SettingsPanel';
@@ -314,8 +315,7 @@ export function TemplateScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.topbar}>
-        <Text style={styles.eyebrow}>SteelHacks</Text>
-        <Text style={styles.title}>Lecture Template</Text>
+        <FillrLogo />
         <Text style={styles.disclaimer}>
           Generated templates may miss topics from the source slides. This is a
           fill-in note sheet, not a homework solver. Teal ink on a filled PDF is
@@ -369,19 +369,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
     gap: 4,
   },
-  eyebrow: {
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontSize: 12,
-    color: colors.gold,
-    fontWeight: '700',
-  },
-  title: {
-    fontFamily: 'Georgia',
-    fontSize: 28,
-    fontWeight: '600',
-    color: colors.ink,
-  },
   disclaimer: {
     color: colors.muted,
     fontSize: 13,
@@ -397,7 +384,7 @@ const styles = StyleSheet.create({
     width: 340,
     borderRightWidth: 1,
     borderRightColor: colors.line,
-    backgroundColor: 'rgba(255, 253, 248, 0.55)',
+    backgroundColor: colors.card,
   },
   sidebarContent: {
     padding: 14,

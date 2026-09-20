@@ -1,11 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   downloadWorkspacePdf,
   exportWorkspace,
   fetchWorkspaceInfo,
   workspacePageUrl,
 } from "../api.js";
-import { containRect, LETTER_ASPECT } from "../lib/geometry.js";
+import { fitWidthRect } from "../lib/geometry.js";
+import { observeVisiblePage, scrollPageIntoView } from "../lib/scrollPage.js";
+import {
+  exportTextPayload,
+  mergeTextBox,
+  runsFromBox,
+  selectionFormat,
+  toggleStyleInRange,
+} from "../lib/richText.js";
 import { loadWorkspace, saveWorkspace } from "../lib/workspaceStore.js";
 import {
   COLOR_ORDER,
@@ -54,24 +62,59 @@ export default function WorkspaceScreen({ doc, onClose }) {
   const [colorName, setColorName] = useState("Black");
   const [colorOpen, setColorOpen] = useState(false);
   const [fontPt, setFontPt] = useState(DEFAULT_FONT_PT);
-  const [textBold, setTextBold] = useState(false);
-  const [textItalic, setTextItalic] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState(null);
+  const [textSelection, setTextSelection] = useState({ id: null, start: 0, end: 0 });
   const [saveStatus, setSaveStatus] = useState("loading");
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageSize, setImageSize] = useState({ width: 850, height: 1100 });
+  const [failedPages, setFailedPages] = useState({});
+  const [imageSizes, setImageSizes] = useState({});
   const [ready, setReady] = useState(false);
-  const stageRef = useRef(null);
-  const stage = useContainerSize(stageRef);
+  const probeRef = useRef(null);
+  const scrollRef = useRef(null);
+  const pageRefs = useRef(new Map());
+  const skipObserve = useRef(false);
+  const { width: stageWidth } = useContainerSize(probeRef);
 
   const pagesRef = useRef(pages);
   const saveTimer = useRef(0);
   pagesRef.current = pages;
 
   const current = pages[String(page)] ?? emptyPage();
-  const pageUri = workspacePageUrl(doc.kind, doc.id, page);
+
+  const setPageNode = useCallback((pageNumber, node) => {
+    if (node) {
+      pageRefs.current.set(pageNumber, node);
+    } else {
+      pageRefs.current.delete(pageNumber);
+    }
+  }, []);
+
+  const pageBox = useCallback(
+    (pageNumber) => {
+      const size = imageSizes[String(pageNumber)] || { width: 850, height: 1100 };
+      return fitWidthRect(stageWidth, size.width, size.height);
+    },
+    [imageSizes, stageWidth],
+  );
+
+  const goToPage = useCallback(
+    (next, behavior = "smooth") => {
+      const target = Math.max(1, Math.min(pageCount, next));
+      skipObserve.current = true;
+      setPage(target);
+      requestAnimationFrame(() => {
+        scrollPageIntoView(pageRefs.current.get(target), behavior);
+      });
+    },
+    [pageCount],
+  );
+  const selectedBox = current.texts.find((item) => item.id === selectedTextId);
+  const format = selectionFormat(
+    selectedBox ? runsFromBox(selectedBox) : [],
+    textSelection.id === selectedTextId ? textSelection.start : 0,
+    textSelection.id === selectedTextId ? textSelection.end : 0,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -106,11 +149,48 @@ export default function WorkspaceScreen({ doc, onClose }) {
     };
   }, [doc.kind, doc.id]);
 
+  const activatePage = useCallback((pageNumber) => {
+    setPage((currentPage) => (currentPage === pageNumber ? currentPage : pageNumber));
+  }, []);
+
   useEffect(() => {
-    setImageFailed(false);
-    setSelectedTextId(null);
-    setColorOpen(false);
-  }, [page, pageUri]);
+    setPage(1);
+    setFailedPages({});
+    setImageSizes({});
+    pageRefs.current.clear();
+  }, [doc.kind, doc.id]);
+
+  useEffect(() => {
+    if (!ready || stageWidth <= 0) {
+      return undefined;
+    }
+    skipObserve.current = true;
+    const frame = requestAnimationFrame(() => {
+      scrollPageIntoView(pageRefs.current.get(1), "auto");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [doc.id, doc.kind, ready, stageWidth]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !ready || pageCount < 1 || stageWidth <= 0) {
+      return undefined;
+    }
+    const nodes = [];
+    for (let index = 1; index <= pageCount; index += 1) {
+      const node = pageRefs.current.get(index);
+      if (node) {
+        nodes.push(node);
+      }
+    }
+    return observeVisiblePage(root, nodes, (next) => {
+      if (skipObserve.current) {
+        skipObserve.current = false;
+        return;
+      }
+      setPage((currentPage) => (currentPage === next ? currentPage : next));
+    });
+  }, [doc.id, pageCount, ready, stageWidth]);
 
   useEffect(() => {
     if (!colorOpen) {
@@ -168,27 +248,29 @@ export default function WorkspaceScreen({ doc, onClose }) {
   );
 
   const handleStroke = useCallback(
-    (stroke) => {
-      updatePage(page, (currentPage) => ({
+    (pageNumber, stroke) => {
+      activatePage(pageNumber);
+      updatePage(pageNumber, (currentPage) => ({
         ...currentPage,
         strokes: [...currentPage.strokes, stroke],
       }));
     },
-    [page, updatePage],
+    [activatePage, updatePage],
   );
 
   const handleErase = useCallback(
-    (ids) => {
+    (pageNumber, ids) => {
       if (ids.length === 0) {
         return;
       }
+      activatePage(pageNumber);
       const remove = new Set(ids);
-      updatePage(page, (currentPage) => ({
+      updatePage(pageNumber, (currentPage) => ({
         ...currentPage,
         strokes: currentPage.strokes.filter((stroke) => !remove.has(stroke.id)),
       }));
     },
-    [page, updatePage],
+    [activatePage, updatePage],
   );
 
   const handleUndo = useCallback(() => {
@@ -202,6 +284,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
       return currentPage;
     });
     setSelectedTextId(null);
+    setTextSelection({ id: null, start: 0, end: 0 });
   }, [page, updatePage]);
 
   const handleClearPage = useCallback(() => {
@@ -213,12 +296,14 @@ export default function WorkspaceScreen({ doc, onClose }) {
     }
     updatePage(page, () => emptyPage());
     setSelectedTextId(null);
+    setTextSelection({ id: null, start: 0, end: 0 });
   }, [current, page, updatePage]);
 
   const handlePlaceText = useCallback(
-    (x, y) => {
+    (pageNumber, x, y) => {
       const id = nextTextId();
-      updatePage(page, (currentPage) => ({
+      activatePage(pageNumber);
+      updatePage(pageNumber, (currentPage) => ({
         ...currentPage,
         texts: [
           ...currentPage.texts,
@@ -226,36 +311,43 @@ export default function WorkspaceScreen({ doc, onClose }) {
             id,
             ...placedTextBox(x, y),
             text: "",
+            runs: [],
             fontSize: ptToFontSize(fontPt),
             color: INK_COLORS[colorName],
-            bold: textBold,
-            italic: textItalic,
           },
         ],
       }));
       setSelectedTextId(id);
+      setTextSelection({ id, start: 0, end: 0 });
     },
-    [colorName, fontPt, page, textBold, textItalic, updatePage],
+    [activatePage, colorName, fontPt, updatePage],
   );
 
   const handleChangeText = useCallback(
-    (id, patch) => {
-      updatePage(page, (currentPage) => ({
+    (pageNumber, id, patch) => {
+      updatePage(pageNumber, (currentPage) => ({
         ...currentPage,
-        texts: currentPage.texts.map((box) => (box.id === id ? { ...box, ...patch } : box)),
+        texts: currentPage.texts.map((box) => (box.id === id ? mergeTextBox(box, patch) : box)),
       }));
     },
-    [page, updatePage],
+    [updatePage],
   );
+
+  const handleTextSelection = useCallback((id, range) => {
+    setTextSelection({
+      id,
+      start: Math.max(0, range?.start ?? 0),
+      end: Math.max(0, range?.end ?? 0),
+    });
+  }, []);
 
   useEffect(() => {
     const box = current.texts.find((item) => item.id === selectedTextId);
     if (!box) {
+      setTextSelection({ id: null, start: 0, end: 0 });
       return;
     }
     setFontPt(fontSizeToPt(box.fontSize));
-    setTextBold(Boolean(box.bold));
-    setTextItalic(Boolean(box.italic));
     const match = COLOR_ORDER.find((name) => INK_COLORS[name].toLowerCase() === box.color.toLowerCase());
     if (match) {
       setColorName(match);
@@ -267,10 +359,10 @@ export default function WorkspaceScreen({ doc, onClose }) {
       setColorName(name);
       setColorOpen(false);
       if (mode === "type" && selectedTextId) {
-        handleChangeText(selectedTextId, { color: INK_COLORS[name] });
+        handleChangeText(page, selectedTextId, { color: INK_COLORS[name] });
       }
     },
-    [handleChangeText, mode, selectedTextId],
+    [handleChangeText, mode, page, selectedTextId],
   );
 
   const applyDrawTool = useCallback(
@@ -305,42 +397,43 @@ export default function WorkspaceScreen({ doc, onClose }) {
         : fontPt;
       setFontPt(next);
       if (selectedTextId) {
-        handleChangeText(selectedTextId, { fontSize: ptToFontSize(next) });
+        handleChangeText(page, selectedTextId, { fontSize: ptToFontSize(next) });
       }
       return next;
     },
-    [fontPt, handleChangeText, selectedTextId],
+    [fontPt, handleChangeText, page, selectedTextId],
   );
 
-  const applyBold = useCallback(() => {
-    setTextBold((prev) => {
-      const next = !prev;
-      if (selectedTextId) {
-        handleChangeText(selectedTextId, { bold: next });
+  const applyTextStyle = useCallback(
+    (style) => {
+      if (!selectedTextId || !format.hasSelection) {
+        return;
       }
-      return next;
-    });
-  }, [handleChangeText, selectedTextId]);
-
-  const applyItalic = useCallback(() => {
-    setTextItalic((prev) => {
-      const next = !prev;
-      if (selectedTextId) {
-        handleChangeText(selectedTextId, { italic: next });
+      const box = pagesRef.current[String(page)]?.texts.find((item) => item.id === selectedTextId);
+      if (!box) {
+        return;
       }
-      return next;
-    });
-  }, [handleChangeText, selectedTextId]);
+      const start = textSelection.id === selectedTextId ? textSelection.start : 0;
+      const end = textSelection.id === selectedTextId ? textSelection.end : 0;
+      if (end <= start) {
+        return;
+      }
+      const runs = toggleStyleInRange(runsFromBox(box), start, end, style);
+      handleChangeText(page, selectedTextId, { runs });
+    },
+    [format.hasSelection, handleChangeText, page, selectedTextId, textSelection.end, textSelection.id, textSelection.start],
+  );
 
   const handleRemoveText = useCallback(
-    (id) => {
-      updatePage(page, (currentPage) => ({
+    (pageNumber, id) => {
+      updatePage(pageNumber, (currentPage) => ({
         ...currentPage,
         texts: currentPage.texts.filter((box) => box.id !== id),
       }));
       setSelectedTextId(null);
+      setTextSelection({ id: null, start: 0, end: 0 });
     },
-    [page, updatePage],
+    [updatePage],
   );
 
   const handleBack = useCallback(() => {
@@ -391,17 +484,15 @@ export default function WorkspaceScreen({ doc, onClose }) {
               opacity: strokeOpacity(stroke),
             })),
             texts: value.texts
-              .filter((box) => box.text.trim().length > 0)
+              .filter((box) => (box.text || "").trim().length > 0)
               .map((box) => ({
                 x: box.x,
                 y: box.y,
                 width: box.width,
                 height: box.height,
-                text: box.text,
                 font_size: box.fontSize,
                 color: box.color,
-                bold: Boolean(box.bold),
-                italic: Boolean(box.italic),
+                ...exportTextPayload(box),
               })),
           }))
           .filter((entry) => entry.strokes.length > 0 || entry.texts.length > 0),
@@ -414,13 +505,6 @@ export default function WorkspaceScreen({ doc, onClose }) {
       setExporting(false);
     }
   }, [doc.filename, doc.id, doc.kind, persist]);
-
-  const pageRect = useMemo(() => {
-    const aspect = imageSize.width / imageSize.height || LETTER_ASPECT;
-    const naturalWidth = 1000;
-    const naturalHeight = naturalWidth / aspect;
-    return containRect(stage.width, stage.height, naturalWidth, naturalHeight);
-  }, [imageSize.height, imageSize.width, stage.height, stage.width]);
 
   const strokePt = toolSizes[drawTool];
   const strokeRange = STROKE_LIMITS[drawTool];
@@ -460,6 +544,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
                   setColorOpen(false);
                   if (value === "write") {
                     setSelectedTextId(null);
+                    setTextSelection({ id: null, start: 0, end: 0 });
                   }
                 }}
               />
@@ -515,17 +600,25 @@ export default function WorkspaceScreen({ doc, onClose }) {
             </label>
             <button
               type="button"
-              className={`chip chip-format${textBold ? " is-selected" : ""}`}
-              aria-pressed={textBold}
-              onClick={applyBold}
+              className={`chip chip-format${format.bold ? " is-selected" : ""}`}
+              aria-pressed={format.bold}
+              aria-label="Bold selected text"
+              disabled={!format.hasSelection}
+              onMouseDown={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => applyTextStyle("bold")}
             >
               <strong>B</strong>
             </button>
             <button
               type="button"
-              className={`chip chip-format${textItalic ? " is-selected" : ""}`}
-              aria-pressed={textItalic}
-              onClick={applyItalic}
+              className={`chip chip-format${format.italic ? " is-selected" : ""}`}
+              aria-pressed={format.italic}
+              aria-label="Italic selected text"
+              disabled={!format.hasSelection}
+              onMouseDown={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => applyTextStyle("italic")}
             >
               <em>I</em>
             </button>
@@ -587,80 +680,106 @@ export default function WorkspaceScreen({ doc, onClose }) {
 
       {error ? <div className="banner error workspace-banner">{error}</div> : null}
 
-      <div className="workspace-stage" ref={stageRef}>
+      <div className="workspace-stage" ref={scrollRef}>
+        <div className="pdf-width-probe" ref={probeRef} />
         {!ready ? (
           <div className="empty-state">
             <p>Opening workspace…</p>
           </div>
-        ) : imageFailed ? (
-          <div className="empty-state">
-            <h3>Could not load this page</h3>
-            <p>Check the API server, then go back and open the workspace again.</p>
-          </div>
         ) : (
-          <>
-            {pageRect.width > 0 ? (
-              <img
-                className="workspace-page"
-                src={pageUri}
-                alt={`Page ${page}`}
-                style={{
-                  left: pageRect.x,
-                  top: pageRect.y,
-                  width: pageRect.width,
-                  height: pageRect.height,
-                }}
-                onLoad={(event) => {
-                  const { naturalWidth, naturalHeight } = event.currentTarget;
-                  if (naturalWidth > 0 && naturalHeight > 0) {
-                    setImageSize({ width: naturalWidth, height: naturalHeight });
-                  }
-                }}
-                onError={() => setImageFailed(true)}
-              />
-            ) : null}
-            {pageRect.width > 0 ? (
-              <div
-                className="workspace-overlay"
-                style={{
-                  left: pageRect.x,
-                  top: pageRect.y,
-                  width: pageRect.width,
-                  height: pageRect.height,
-                }}
-              >
-                <InkOverlay
-                  strokes={current.strokes}
-                  enabled={mode === "write"}
-                  color={INK_COLORS[colorName]}
-                  widthNorm={widthNorm}
-                  width={pageRect.width}
-                  height={pageRect.height}
-                  tool={drawTool}
-                  opacity={strokeAlpha}
-                  eraserRadius={strokePtToScreenPx(toolSizes.eraser, pageRect.width)}
-                  onStrokeComplete={handleStroke}
-                  onEraseStrokes={handleErase}
-                />
-                <TextBoxLayer
-                  boxes={current.texts}
-                  selectedId={selectedTextId}
-                  enabled={mode === "type"}
-                  pageWidth={pageRect.width}
-                  pageHeight={pageRect.height}
-                  onSelect={setSelectedTextId}
-                  onChange={handleChangeText}
-                  onRemove={handleRemoveText}
-                  onPlace={handlePlaceText}
-                />
-              </div>
-            ) : null}
-          </>
+          <div className="workspace-pages">
+            {Array.from({ length: pageCount }, (_, index) => {
+              const pageNumber = index + 1;
+              const pageData = pages[String(pageNumber)] ?? emptyPage();
+              const box = pageBox(pageNumber);
+              const failed = Boolean(failedPages[String(pageNumber)]);
+              const pageUri = workspacePageUrl(doc.kind, doc.id, pageNumber);
+              return (
+                <article
+                  key={pageNumber}
+                  className={`workspace-page-block${pageNumber === page ? " is-current" : ""}`}
+                  data-page={pageNumber}
+                  ref={(node) => setPageNode(pageNumber, node)}
+                  style={{ width: box.width || "100%", minHeight: box.height || undefined }}
+                  onPointerDown={() => activatePage(pageNumber)}
+                >
+                  {failed ? (
+                    <div className="empty-state">
+                      <h3>Could not load page {pageNumber}</h3>
+                      <p>Check the API server, then go back and open the workspace again.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {box.width > 0 ? (
+                        <img
+                          className="workspace-page"
+                          src={pageUri}
+                          alt={`Page ${pageNumber}`}
+                          style={{ width: box.width, height: box.height }}
+                          onLoad={(event) => {
+                            const { naturalWidth, naturalHeight } = event.currentTarget;
+                            if (naturalWidth > 0 && naturalHeight > 0) {
+                              setImageSizes((prev) => {
+                                const key = String(pageNumber);
+                                const prevSize = prev[key];
+                                if (prevSize?.width === naturalWidth && prevSize?.height === naturalHeight) {
+                                  return prev;
+                                }
+                                return { ...prev, [key]: { width: naturalWidth, height: naturalHeight } };
+                              });
+                            }
+                          }}
+                          onError={() =>
+                            setFailedPages((prev) => ({ ...prev, [String(pageNumber)]: true }))
+                          }
+                        />
+                      ) : null}
+                      {box.width > 0 ? (
+                        <div
+                          className="workspace-overlay"
+                          style={{ width: box.width, height: box.height }}
+                        >
+                          <InkOverlay
+                            strokes={pageData.strokes}
+                            enabled={mode === "write"}
+                            color={INK_COLORS[colorName]}
+                            widthNorm={widthNorm}
+                            width={box.width}
+                            height={box.height}
+                            tool={drawTool}
+                            opacity={strokeAlpha}
+                            eraserRadius={strokePtToScreenPx(toolSizes.eraser, box.width)}
+                            onStrokeComplete={(stroke) => handleStroke(pageNumber, stroke)}
+                            onEraseStrokes={(ids) => handleErase(pageNumber, ids)}
+                          />
+                          <TextBoxLayer
+                            boxes={pageData.texts}
+                            selectedId={pageNumber === page ? selectedTextId : null}
+                            enabled={mode === "type"}
+                            pageWidth={box.width}
+                            pageHeight={box.height}
+                            onSelect={(id) => {
+                              activatePage(pageNumber);
+                              setSelectedTextId(id);
+                            }}
+                            onChange={(id, patch) => handleChangeText(pageNumber, id, patch)}
+                            onRemove={(id) => handleRemoveText(pageNumber, id)}
+                            onPlace={(x, y) => handlePlaceText(pageNumber, x, y)}
+                            onSelectionChange={handleTextSelection}
+                          />
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </article>
+              );
+            })}
+          </div>
         )}
       </div>
 
       <footer className="workspace-pager">
-        <button type="button" className="ghost" disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+        <button type="button" className="ghost" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
           ‹ Prev
         </button>
         <span>
@@ -670,7 +789,7 @@ export default function WorkspaceScreen({ doc, onClose }) {
           type="button"
           className="ghost"
           disabled={page >= pageCount}
-          onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+          onClick={() => goToPage(page + 1)}
         >
           Next ›
         </button>

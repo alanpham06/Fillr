@@ -11,7 +11,7 @@ from routers import ingest, templates, workspace
 ensure_data_dirs()
 
 app = FastAPI(
-    title="Lecture Template API",
+    title="Fillr API",
     description="Upload lecture slides, generate fill-in note templates, and merge OCR'd completed notes.",
     version="0.1.0",
 )

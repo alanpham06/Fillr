@@ -1,6 +1,6 @@
 {
   "name": "note-template",
-  "description": "Expo Go app for SteelHacks lecture-template generation on iPad.",
+  "description": "Expo Go app for Fillr lecture-template generation on iPad.",
   "license": "0BSD",
   "version": "57.0.26",
   "main": "index.ts",

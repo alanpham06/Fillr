@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -79,7 +80,13 @@ export function PdfPreview({
             ) : null}
           </View>
         ) : kind === 'image' ? (
-          <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            nestedScrollEnabled
+          >
+            <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+          </ScrollView>
         ) : (
           <WebView
             source={{ uri, headers: { Accept: 'application/pdf' } }}
@@ -88,6 +95,7 @@ export function PdfPreview({
             allowFileAccess
             allowUniversalAccessFromFileURLs
             mixedContentMode="always"
+            nestedScrollEnabled
             startInLoadingState
             setSupportMultipleWindows={false}
             renderLoading={() => (
@@ -166,13 +174,21 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    minHeight: 420,
+  },
   webview: {
     flex: 1,
     backgroundColor: colors.pdfStage,
   },
   image: {
-    flex: 1,
     width: '100%',
+    minHeight: 420,
+    flexGrow: 1,
   },
   empty: {
     flex: 1,

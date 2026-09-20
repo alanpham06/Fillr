@@ -228,7 +228,7 @@ export function AppSessionProvider({ children }) {
       setTemplateUrl(blobUrl);
       rememberSession({
         id: source.id,
-        title: sessionTitle || file?.name || "Lecture template",
+        title: sessionTitle || file?.name || "Untitled notes",
         sourceId: source.id,
         sourceName: file?.name || "",
         sourcePageCount: source.page_count || 0,

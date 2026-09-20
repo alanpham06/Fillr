@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { clamp } from '../lib/geometry';
+import { applyPlainTextChange, plainTextFromRuns, runsFromBox } from '../lib/richText';
 import {
   PAGE_MARGIN,
   grownTextBox,
@@ -29,6 +30,7 @@ type TextBoxLayerProps = {
   onChange: (id: string, patch: Partial<WorkspaceTextBox>) => void;
   onRemove: (id: string) => void;
   onPlace: (x: number, y: number) => void;
+  onSelectionChange?: (id: string, range: { start: number; end: number }) => void;
 };
 
 export function TextBoxLayer({
@@ -41,6 +43,7 @@ export function TextBoxLayer({
   onChange,
   onRemove,
   onPlace,
+  onSelectionChange,
 }: TextBoxLayerProps) {
   const ignorePlace = useRef(false);
 
@@ -81,6 +84,7 @@ export function TextBoxLayer({
           }}
           onChange={(patch) => onChange(box.id, patch)}
           onRemove={() => onRemove(box.id)}
+          onSelectionChange={(range) => onSelectionChange?.(box.id, range)}
         />
       ))}
     </View>
@@ -96,6 +100,7 @@ type TextBoxProps = {
   onSelect: () => void;
   onChange: (patch: Partial<WorkspaceTextBox>) => void;
   onRemove: () => void;
+  onSelectionChange?: (range: { start: number; end: number }) => void;
 };
 
 function movedBox(
@@ -123,6 +128,7 @@ function TextBox({
   onSelect,
   onChange,
   onRemove,
+  onSelectionChange,
 }: TextBoxProps) {
   const boxRef = useRef(box);
   const startRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -130,7 +136,8 @@ function TextBox({
   const onSelectRef = useRef(onSelect);
   const editingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
-  const [editing, setEditing] = useState(selected && box.text.length === 0);
+  const [editing, setEditing] = useState(selected && !(box.text || '').length);
+  const runs = runsFromBox(box);
 
   boxRef.current = box;
   onChangeRef.current = onChange;
@@ -142,10 +149,10 @@ function TextBox({
       setEditing(false);
       return;
     }
-    if (enabled && box.text.length === 0) {
+    if (enabled && !(box.text || '').length) {
       setEditing(true);
     }
-  }, [box.text.length, enabled, selected]);
+  }, [box.text, enabled, selected]);
 
   useEffect(() => {
     if (editing && selected && enabled) {
@@ -249,8 +256,6 @@ function TextBox({
             styles.measure,
             {
               fontSize,
-              fontWeight: box.bold ? '700' : '400',
-              fontStyle: box.italic ? 'italic' : 'normal',
               maxWidth: maxMeasureWidth,
               width: box.widthLocked ? width - 16 : undefined,
             },
@@ -274,12 +279,49 @@ function TextBox({
             }
           }}
         >
-          {box.text.length > 0 ? box.text : ' '}
+          {runs.length > 0
+            ? runs.map((run, index) => (
+                <Text
+                  key={`${index}-${run.text.length}`}
+                  style={{
+                    fontSize,
+                    fontWeight: run.bold ? '700' : '400',
+                    fontStyle: run.italic ? 'italic' : 'normal',
+                  }}
+                >
+                  {run.text}
+                </Text>
+              ))
+            : ' '}
         </Text>
+        {box.text ? (
+          <Text pointerEvents="none" style={[styles.overlay, { fontSize, color: box.color }]}>
+            {runs.map((run, index) => (
+              <Text
+                key={`${index}-${run.text.length}`}
+                style={{
+                  fontSize,
+                  color: box.color,
+                  fontWeight: run.bold ? '700' : '400',
+                  fontStyle: run.italic ? 'italic' : 'normal',
+                }}
+              >
+                {run.text}
+              </Text>
+            ))}
+          </Text>
+        ) : null}
         <TextInput
           ref={inputRef}
           value={box.text}
-          onChangeText={(text) => onChange({ text })}
+          onChangeText={(text) => {
+            const nextRuns = applyPlainTextChange(runsFromBox(boxRef.current), boxRef.current.text || '', text);
+            onChange({ runs: nextRuns, text: plainTextFromRuns(nextRuns) });
+          }}
+          onSelectionChange={(event) => {
+            const { start, end } = event.nativeEvent.selection;
+            onSelectionChange?.({ start, end });
+          }}
           onFocus={() => {
             onSelect();
             setEditing(true);
@@ -294,10 +336,10 @@ function TextBox({
           style={[
             styles.input,
             {
-              color: box.color,
+              color: box.text ? 'transparent' : box.color,
               fontSize,
-              fontWeight: box.bold ? '700' : '400',
-              fontStyle: box.italic ? 'italic' : 'normal',
+              fontWeight: '400',
+              fontStyle: 'normal',
               minHeight: Math.max(28, height - 8),
             },
           ]}
@@ -368,6 +410,13 @@ const styles = StyleSheet.create({
     opacity: 0,
     left: 8,
     top: 6,
+  },
+  overlay: {
+    position: 'absolute',
+    left: 8,
+    top: 6,
+    right: 8,
+    pointerEvents: 'none',
   },
   remove: {
     position: 'absolute',

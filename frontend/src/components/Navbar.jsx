@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import FillrLogo from "./FillrLogo.jsx";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -22,9 +23,8 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        <NavLink to="/" end className="navbar-brand">
-          <span className="navbar-mark">L</span>
-          <span className="navbar-name">Lecture Template</span>
+        <NavLink to="/" end className="navbar-brand" aria-label="Fillr home">
+          <FillrLogo />
         </NavLink>
         <div className="navbar-links">
           {LINKS.map((link) => (

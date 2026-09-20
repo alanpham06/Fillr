@@ -1,6 +1,6 @@
 # Frontend
 
-Vite + React app for lecture-template upload, settings, preview, workspace, and completed-notes upload. This is the computer UI; the iPad app is `NoteTemplate/`. Both talk to the same FastAPI backend.
+Vite + React UI for Fillr: lecture-template upload, settings, preview, workspace, and completed-notes upload. The iPad app is `NoteTemplate/`. Both talk to the same FastAPI backend.
 
 ```bash
 conda activate steelhacks

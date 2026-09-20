@@ -1,4 +1,4 @@
-# Lecture Template
+# Fillr
 
 Upload lecture slides, choose how filled-in the notes should be, and generate a fill-in lecture template. You can later photograph the handwritten sheet; we OCR it and merge the writing back in teal ink. This is not a homework solver.
 
@@ -44,7 +44,7 @@ Upload slides, generate a template, then use **Write on this** on either PDF pan
 
 ## iPad (Expo Go)
 
-The iPad app lives in `NoteTemplate/` and is named **Note Template** in Expo. Tap an uploaded PDF or a generated template to open the write/type workspace.
+The iPad app lives in `NoteTemplate/` and is named **Fillr** in Expo. Tap an uploaded PDF or a generated template to open the write/type workspace.
 
 ```bash
 conda activate steelhacks

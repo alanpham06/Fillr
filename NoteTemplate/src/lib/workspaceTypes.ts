@@ -1,4 +1,5 @@
 import { clamp } from './geometry';
+import { normalizeTextBox as normalizeBoxRuns, type StyledRun } from './richText';
 import type { Point } from './smoothPath';
 
 export type WorkspaceKind = 'source' | 'template' | 'filled';
@@ -32,6 +33,7 @@ export type WorkspaceTextBox = {
   text: string;
   fontSize: number;
   color: string;
+  runs?: StyledRun[];
   bold?: boolean;
   italic?: boolean;
   widthLocked?: boolean;
@@ -142,7 +144,22 @@ export function pageHasInk(page: WorkspacePage | undefined): boolean {
   if (!page) {
     return false;
   }
-  return page.strokes.length > 0 || page.texts.some((box) => box.text.trim().length > 0);
+  return page.strokes.length > 0 || page.texts.some((box) => (box.text || '').trim().length > 0);
+}
+
+export function normalizeTextBox(box: WorkspaceTextBox): WorkspaceTextBox {
+  return normalizeBoxRuns(box);
+}
+
+export function normalizeWorkspacePages(pages: Record<string, WorkspacePage>): Record<string, WorkspacePage> {
+  const next: Record<string, WorkspacePage> = {};
+  for (const [key, page] of Object.entries(pages || {})) {
+    next[key] = {
+      strokes: page?.strokes ?? [],
+      texts: (page?.texts ?? []).map((box) => normalizeBoxRuns(box)),
+    };
+  }
+  return next;
 }
 
 export function strokeTool(stroke: WorkspaceStroke): StrokeTool {

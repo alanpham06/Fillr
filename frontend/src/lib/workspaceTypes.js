@@ -1,4 +1,5 @@
 import { clamp } from "./geometry.js";
+import { normalizeTextBox as normalizeBoxRuns } from "./richText.js";
 
 export const INK_COLORS = {
   Black: "#111111",
@@ -90,7 +91,22 @@ export function pageHasInk(page) {
   if (!page) {
     return false;
   }
-  return page.strokes.length > 0 || page.texts.some((box) => box.text.trim().length > 0);
+  return page.strokes.length > 0 || page.texts.some((box) => (box.text || "").trim().length > 0);
+}
+
+export function normalizeTextBox(box) {
+  return normalizeBoxRuns(box);
+}
+
+export function normalizeWorkspacePages(pages) {
+  const next = {};
+  for (const [key, page] of Object.entries(pages || {})) {
+    next[key] = {
+      strokes: page?.strokes ?? [],
+      texts: (page?.texts ?? []).map((box) => normalizeBoxRuns(box)),
+    };
+  }
+  return next;
 }
 
 export function strokeTool(stroke) {

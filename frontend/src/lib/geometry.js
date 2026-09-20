@@ -45,3 +45,12 @@ export function containRect(containerWidth, containerHeight, imageWidth, imageHe
     height,
   };
 }
+
+/** Size a page to a target width and let height overflow for scrolling. */
+export function fitWidthRect(targetWidth, imageWidth, imageHeight) {
+  if (targetWidth <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+  const height = targetWidth * (imageHeight / imageWidth);
+  return { x: 0, y: 0, width: targetWidth, height };
+}

@@ -79,6 +79,12 @@ class WorkspaceStroke(BaseModel):
     opacity: float = Field(default=1.0, ge=0, le=1)
 
 
+class WorkspaceTextRun(BaseModel):
+    text: str = Field(max_length=4000)
+    bold: bool = False
+    italic: bool = False
+
+
 class WorkspaceTextBox(BaseModel):
     x: float = Field(ge=-0.05, le=1.05)
     y: float = Field(ge=-0.05, le=1.05)
@@ -89,6 +95,7 @@ class WorkspaceTextBox(BaseModel):
     color: str = "#111111"
     bold: bool = False
     italic: bool = False
+    runs: list[WorkspaceTextRun] = Field(default_factory=list, max_length=500)
 
 
 class WorkspacePageExport(BaseModel):

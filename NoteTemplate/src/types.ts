@@ -46,6 +46,12 @@ export type WorkspaceExportStroke = {
   width: number;
 };
 
+export type WorkspaceExportTextRun = {
+  text: string;
+  bold: boolean;
+  italic: boolean;
+};
+
 export type WorkspaceExportText = {
   x: number;
   y: number;
@@ -54,6 +60,9 @@ export type WorkspaceExportText = {
   text: string;
   font_size: number;
   color: string;
+  bold?: boolean;
+  italic?: boolean;
+  runs?: WorkspaceExportTextRun[];
 };
 
 export type WorkspaceExportRequest = {

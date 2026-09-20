@@ -1,10 +1,10 @@
-# Note Template (Expo Go)
+# Fillr (Expo Go)
 
-iPad app for the SteelHacks lecture-template flow: upload a lecture PDF, set density / text size / diagram and code toggles, generate a fill-in template, preview the source and generated PDFs, then open a workspace to write or type on a page. You can also share the original or an annotated PDF.
+iPad app for Fillr: upload a lecture PDF, set density / text size / diagram and code toggles, generate a fill-in template, preview the source and generated PDFs, then open a workspace to write or type on a page. You can also share the original or an annotated PDF.
 
 This is not a homework solver.
 
-The display name is **Note Template** (`slug`: `note-template`). The app folder is `NoteTemplate/`.
+The display name is **Fillr** (`slug`: `fillr`). The app folder is `NoteTemplate/`.
 
 ## Run on an iPad
 

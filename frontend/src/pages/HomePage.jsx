@@ -9,7 +9,7 @@ const STEPS = [
   {
     n: "2",
     title: "Choose how it scaffolds",
-    body: "Pick more filled vs more blank, text size, and whether to leave diagram or code slots.",
+    body: "Pick how much is already written, template text size, and whether to leave room for diagrams or code.",
   },
   {
     n: "3",
@@ -24,10 +24,10 @@ const STEPS = [
 ];
 
 const STYLES = [
-  ["More filled in", "Keep more of the lecture structure printed"],
-  ["More blank", "Leave extra space to write during class"],
-  ["Diagram slots", "Empty frames where figures belong"],
-  ["Code-block slots", "Room to copy examples by hand"],
+  ["More structure", "Keep more of the lecture structure printed"],
+  ["More blank space", "Leave extra space to write during class"],
+  ["Leave room for diagrams", "Empty frames where figures belong"],
+  ["Leave room for code", "Room to copy examples by hand"],
   ["Write + Type", "Pen, highlighter, eraser, and growing text boxes"],
   ["Completed-notes OCR", "Photograph the sheet; we merge the writing back in"],
 ];
@@ -43,7 +43,7 @@ export default function HomePage() {
           notes you <em>complete</em>, not copy.
         </h1>
         <p className="hero-lead">
-          Lecture Template builds scaffolded fill-in sheets from your course
+          Fillr builds scaffolded fill-in sheets from your course
           material — with blanks to write, slots to sketch, and space to type.
           It is a lecture template generator, not a homework solver, and it
           deliberately leaves the thinking to you.

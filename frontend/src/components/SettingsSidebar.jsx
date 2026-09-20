@@ -126,8 +126,9 @@ export default function SettingsSidebar({
         {tab === "settings" ? (
           <section>
             <fieldset className="field">
-              <legend className="field-label">How complete should it look?</legend>
-              <div className="segmented" role="radiogroup">
+              <legend className="field-label">How much is already written</legend>
+              <p className="field-hint">Printed structure vs space to write.</p>
+              <div className="segmented" role="radiogroup" aria-label="How much is already written">
                 <label className={settings.density === "more_full" ? "on" : ""}>
                   <input
                     type="radio"
@@ -136,7 +137,7 @@ export default function SettingsSidebar({
                     checked={settings.density === "more_full"}
                     onChange={() => update({ density: "more_full" })}
                   />
-                  More filled in
+                  More structure
                 </label>
                 <label className={settings.density === "less_full" ? "on" : ""}>
                   <input
@@ -146,14 +147,15 @@ export default function SettingsSidebar({
                     checked={settings.density === "less_full"}
                     onChange={() => update({ density: "less_full" })}
                   />
-                  More blank
+                  More blank space
                 </label>
               </div>
             </fieldset>
 
             <fieldset className="field">
-              <legend className="field-label">Text size</legend>
-              <div className="segmented" role="radiogroup">
+              <legend className="field-label">Template text size</legend>
+              <p className="field-hint">Size of printed headings and prompts.</p>
+              <div className="segmented" role="radiogroup" aria-label="Template text size">
                 {["small", "medium", "large"].map((size) => (
                   <label key={size} className={settings.textSize === size ? "on" : ""}>
                     <input
@@ -169,14 +171,16 @@ export default function SettingsSidebar({
               </div>
             </fieldset>
 
-            <p className="field-label">Include</p>
             <label className="toggle">
               <input
                 type="checkbox"
                 checked={settings.includeDiagrams}
                 onChange={(event) => update({ includeDiagrams: event.target.checked })}
               />
-              <span>Diagram slots</span>
+              <span className="toggle-copy">
+                <span>Leave room for diagrams</span>
+                <span className="field-hint">Empty frames to sketch figures.</span>
+              </span>
             </label>
 
             <label className="toggle">
@@ -185,7 +189,10 @@ export default function SettingsSidebar({
                 checked={settings.includeCode}
                 onChange={(event) => update({ includeCode: event.target.checked })}
               />
-              <span>Code-block slots</span>
+              <span className="toggle-copy">
+                <span>Leave room for code</span>
+                <span className="field-hint">Empty blocks to copy examples.</span>
+              </span>
             </label>
           </section>
         ) : null}
