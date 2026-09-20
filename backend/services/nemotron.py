@@ -1,4 +1,8 @@
-"""Optional NVIDIA Nemotron client. Never send images — text only."""
+"""Nemotron client for aligning OCR'd notes onto template slots (text only).
+
+Points at the self-hosted vLLM server (config.NVIDIA_BASE_URL), same as the
+generate path. Any failure returns None so the caller falls back to the local
+heuristic — the notes feature keeps working even if the model is unreachable."""
 
 from __future__ import annotations
 
@@ -6,7 +10,13 @@ import json
 import re
 from pathlib import Path
 
-from config import NVIDIA_API_KEY, NVIDIA_MODEL, SYSTEM_PROMPTS_DIR
+from config import (
+    LLM_TIMEOUT_SECONDS,
+    NVIDIA_API_KEY,
+    NVIDIA_BASE_URL,
+    NVIDIA_MODEL,
+    SYSTEM_PROMPTS_DIR,
+)
 
 _ALIGN_PROMPT = SYSTEM_PROMPTS_DIR / "notes_align.txt"
 _MAX_OCR_CHARS = 12000
@@ -36,8 +46,9 @@ def map_ocr_to_slots(labels: list[str], ocr_text: str) -> dict[str, str] | None:
 
     try:
         client = OpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
+            base_url=NVIDIA_BASE_URL,
             api_key=NVIDIA_API_KEY,
+            timeout=LLM_TIMEOUT_SECONDS,
         )
         response = client.chat.completions.create(
             model=NVIDIA_MODEL,
@@ -46,6 +57,10 @@ def map_ocr_to_slots(labels: list[str], ocr_text: str) -> dict[str, str] | None:
                 {"role": "user", "content": user},
             ],
             temperature=0.1,
+            max_tokens=4096,
+            response_format={"type": "json_object"},
+            # vLLM/Nemotron-specific: skip the reasoning trace for speed.
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
         content = (response.choices[0].message.content or "").strip()
     except Exception:

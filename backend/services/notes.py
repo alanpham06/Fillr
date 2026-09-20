@@ -73,14 +73,27 @@ def fill_template_from_notes(
     return output_pdf, tex_path, mapper, pages
 
 
+def _document_body(tex: str) -> str:
+    """The text between \\begin{document} and \\end{document}. Scanning only the
+    body keeps preamble commands (e.g. \\newcommand{\\deflabel}[1]{...\\textbf{#1}})
+    from being mistaken for slot labels."""
+    begin = tex.find(r"\begin{document}")
+    if begin == -1:
+        return tex
+    start = begin + len(r"\begin{document}")
+    end = tex.find(r"\end{document}", start)
+    return tex[start:end] if end != -1 else tex[start:]
+
+
 def extract_slot_labels(tex: str) -> list[str]:
     seen: set[str] = set()
     labels: list[str] = []
+    body = _document_body(tex)
     for pattern in _LABEL_PATTERNS:
-        for match in pattern.finditer(tex):
+        for match in pattern.finditer(body):
             label = _clean_label(match.group(1))
             key = label.lower()
-            if not label or key in seen or key in _SKIP_LABELS:
+            if not label or "#" in label or key in seen or key in _SKIP_LABELS:
                 continue
             seen.add(key)
             labels.append(label)
@@ -96,10 +109,19 @@ def inject_student_text(tex: str, assignments: dict[str, str]) -> str:
     }
     used: set[str] = set()
     out: list[str] = []
+    in_body = False
 
     for line in tex.splitlines():
         out.append(line)
+        # Only inject inside the document body: never in the preamble (which
+        # would trigger "Missing \begin{document}") or after \end{document}.
+        if r"\begin{document}" in line:
+            in_body = True
+            continue
         if r"\end{document}" in line:
+            in_body = False
+            continue
+        if not in_body:
             continue
         for label, text in pending.items():
             if label in used:
