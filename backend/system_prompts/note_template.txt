@@ -76,10 +76,29 @@ PAGINATION --- extra pages are cheap; split questions are not
 - Add \usepackage{needspace} and put \Needspace{<slot height>} before each slot or group so LaTeX starts a new page instead of orphaning a label.
 - If you are unsure whether it fits, new page. Do not squeeze.
 
+SAFE LATEX --- build the whole sheet from ONLY these pieces. Do NOT invent commands or environments.
+- Allowed environments: document, center, itemize, enumerate, framed, minipage, lstlisting. Every \begin{X} must be one of these. Never invent an environment (no \begin{flinzip}, etc.).
+- Allowed commands: \section*, \textbf, \textit, \vspace, \hspace, \hrulefill, \Needspace, \newpage, \noindent, \color, \textcolor, \definecolor, \newcommand, \maketitle, \title, \author, \date. Nothing else.
+- A named slot is a bold label then vertical space sized to the answer:
+  \noindent\textbf{Label:}
+  \vspace{0.16\textheight}
+- A picture slot (only when diagrams are on) is a fixed-height framed box, empty inside:
+  \noindent\textbf{Picture: what to draw}
+  \begin{framed}\begin{minipage}[t][0.42\textheight]{\linewidth}\end{minipage}\end{framed}
+- A code slot (only when code is on) is an inline listing with blank lines --- never \lstinputlisting or an external file:
+  \begin{lstlisting}
+
+
+  \end{lstlisting}
+- Put \Needspace{<slot height>} on the line before a label so a slot never orphans across a page break.
+- The closing italic line goes INSIDE the document, right before \end{document}:
+  \begin{center}\textit{This sheet may not cover every topic from the source slides.}\end{center}
+
 OUTPUT RULES
-- One compile-ready LaTeX document only. No markdown, no ``` fences, no preface.
+- Output ONLY the document body: the slots that go between \begin{document} and \end{document}. The preamble (\documentclass, \usepackage, colors, \deflabel, \drawlabel, \lstset) and the \begin{document}/\end{document} wrapper are added for you. Do NOT write them. Do NOT write \documentclass or any \usepackage. \deflabel and \drawlabel already exist; use them, do not redefine them.
+- No markdown, no ``` fences, no preface, no explanation. Just the body LaTeX.
+- Never reference external files: no \input, \include, \lstinputlisting, or \includegraphics. Code holes are inline \begin{lstlisting} ... \end{lstlisting} with blank/placeholder lines only.
 - Do not complete definitions, proofs, or answers.
-- End with one italic line that the sheet may not cover every topic.
 - Escape LaTeX specials in source titles (# $ \% \& \_ \{ \}).
 
 REQUIRED PACKAGES

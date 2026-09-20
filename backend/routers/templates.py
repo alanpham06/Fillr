@@ -11,7 +11,7 @@ from config import MAX_UPLOAD_BYTES, TEX_DIR
 from models import GenerateRequest, GenerateResponse, NotesUploadResponse
 from services import storage
 from services.extractor import TextExtractor, get_extractor
-from services.generator import generate_stub_pdf
+from services.generator import generate_template_pdf
 from services.notes import NotesFillError, fill_template_from_notes
 from services.pdf_pages import pdf_page_count
 from services.storage import ALLOWED_UPLOAD_SUFFIXES
@@ -26,7 +26,7 @@ def generate_template(body: GenerateRequest) -> GenerateResponse:
         raise HTTPException(status_code=404, detail="Upload lecture slides first.")
 
     pdf_path = storage.new_template_path()
-    generate_stub_pdf(
+    result = generate_template_pdf(
         source,
         pdf_path,
         density=body.density,
@@ -45,7 +45,7 @@ def generate_template(body: GenerateRequest) -> GenerateResponse:
         template_id=record.id,
         pdf_url=f"/templates/{record.id}/file",
         page_count=pdf_page_count(pdf_path),
-        stub=True,
+        stub=not result.used_llm,
     )
 
 

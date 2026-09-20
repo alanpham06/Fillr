@@ -1,8 +1,17 @@
-"""Stub lecture-template PDF generator. Does not call Nemotron."""
+"""Lecture-template PDF generator.
+
+Primary path: Nemotron (services.llm) returns a JSON note-sheet spec, which
+services.latex_render turns into compile-ready LaTeX, then Tectonic compiles it.
+If the model is unconfigured, unreachable, returns unusable output, or the
+compile fails, fall back to the local stub template so Generate always returns a
+downloadable PDF.
+"""
 
 from __future__ import annotations
 
+import logging
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pymupdf
@@ -10,9 +19,82 @@ import pymupdf
 from compile_latex import LatexCompileError, compile_tex
 from config import TEX_DIR
 from models import Density, TextSize
+from services import latex_render, llm
 from services.extractor import PageText
 from services.latex_style import INK_RGB, SLOTDEF_RGB, SLOTDRAW_RGB, preamble_lines
 from services.storage import SourceRecord
+
+logger = logging.getLogger(__name__)
+
+# How many times to try the model (each try = one generation + one compile)
+# before falling back to the local stub template.
+LLM_ATTEMPTS = 2
+
+
+@dataclass
+class GenerationResult:
+    """Outcome of a template generation."""
+
+    path: Path
+    used_llm: bool
+    note: str = ""
+
+
+def generate_template_pdf(
+    source: SourceRecord,
+    output_pdf: Path,
+    *,
+    density: Density,
+    text_size: TextSize,
+    include_diagrams: bool,
+    include_code: bool,
+) -> GenerationResult:
+    """Generate via Nemotron when possible, else the local stub. Never raises
+    for an ordinary model/compile failure — it degrades to the stub instead."""
+    note = ""
+    if llm.is_configured():
+        # The model is stochastic: an occasional reply omits \end{document} or
+        # emits LaTeX that will not compile. Retry once before degrading.
+        last_exc: Exception | None = None
+        for attempt in range(1, LLM_ATTEMPTS + 1):
+            try:
+                spec = llm.generate_template_spec(
+                    source.pages,
+                    density=density,
+                    text_size=text_size,
+                    include_diagrams=include_diagrams,
+                    include_code=include_code,
+                )
+                latex = latex_render.render_template(
+                    spec,
+                    density=density,
+                    text_size=text_size,
+                    include_diagrams=include_diagrams,
+                    include_code=include_code,
+                )
+                tex_path = TEX_DIR / f"{output_pdf.stem}.tex"
+                tex_path.parent.mkdir(parents=True, exist_ok=True)
+                tex_path.write_text(latex, encoding="utf-8")
+                pdf = compile_tex(tex_path, output_pdf)
+                return GenerationResult(path=pdf, used_llm=True)
+            except (llm.LLMError, LatexCompileError, FileNotFoundError, ValueError) as exc:
+                last_exc = exc
+                logger.warning("Nemotron attempt %d/%d failed: %s", attempt, LLM_ATTEMPTS, exc)
+        note = f"Nemotron path failed after {LLM_ATTEMPTS} attempts, used local fallback: {last_exc}"
+        logger.warning(note)
+    else:
+        note = "NVIDIA_API_KEY not set; used local fallback template."
+        logger.warning(note)
+
+    pdf = generate_stub_pdf(
+        source,
+        output_pdf,
+        density=density,
+        text_size=text_size,
+        include_diagrams=include_diagrams,
+        include_code=include_code,
+    )
+    return GenerationResult(path=pdf, used_llm=False, note=note)
 
 _HEADING_SKIP = re.compile(
     r"^(\d+(\s*/\s*\d+)*|"
