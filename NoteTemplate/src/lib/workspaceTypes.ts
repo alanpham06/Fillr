@@ -48,7 +48,6 @@ export type SavedWorkspace = {
 };
 
 export type EditorMode = 'write' | 'type';
-export type FontSizeName = 'S' | 'M' | 'L';
 export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 export const INK_COLORS = {
@@ -84,17 +83,40 @@ export const DRAW_TOOL_LABELS: Record<DrawTool, string> = {
   eraser: 'Eraser',
 };
 
-export const FONT_SIZES: Record<FontSizeName, number> = {
-  S: 0.018,
-  M: 0.024,
-  L: 0.032,
-};
-export const FONT_SIZE_ORDER: FontSizeName[] = ['S', 'M', 'L'];
+export const PAGE_HEIGHT_PT = 792;
+export const MIN_FONT_PT = 5;
+export const MAX_FONT_PT = 64;
+export const DEFAULT_FONT_PT = 14;
 
-export const PEN_WIDTH_PX = 5;
-export const HIGHLIGHTER_WIDTH_PX = 22;
+export const PAGE_WIDTH_PT = 612;
+export const STROKE_LIMITS: Record<DrawTool, { min: number; max: number; default: number; step: number }> = {
+  pen: { min: 0.5, max: 8, default: 1.25, step: 0.25 },
+  highlighter: { min: 4, max: 36, default: 12, step: 1 },
+  eraser: { min: 4, max: 40, default: 10, step: 1 },
+};
 export const HIGHLIGHTER_OPACITY = 0.38;
-export const ERASER_RADIUS_PX = 18;
+export const ERASER_RADIUS_PX = 8;
+export const DEFAULT_TOOL_SIZES: Record<DrawTool, number> = {
+  pen: STROKE_LIMITS.pen.default,
+  highlighter: STROKE_LIMITS.highlighter.default,
+  eraser: STROKE_LIMITS.eraser.default,
+};
+
+export function clampStrokePt(tool: DrawTool, pt: number): number {
+  const range = STROKE_LIMITS[tool];
+  const value = Number(pt);
+  const raw = Number.isFinite(value) ? value : range.default;
+  const snapped = Math.round(raw / range.step) * range.step;
+  return clamp(Number(snapped.toFixed(2)), range.min, range.max);
+}
+
+export function strokePtToNorm(pt: number): number {
+  return Math.max(Number(pt) || 0, 0.25) / PAGE_WIDTH_PT;
+}
+
+export function strokePtToScreenPx(pt: number, pageWidthPx: number): number {
+  return strokePtToNorm(pt) * Math.max(pageWidthPx, 1);
+}
 
 export const PAGE_MARGIN = 0.02;
 export const MIN_TEXT_WIDTH = 0.16;
@@ -102,7 +124,15 @@ export const MAX_TEXT_WIDTH = 1 - PAGE_MARGIN * 2;
 export const MIN_TEXT_HEIGHT = 0.045;
 export const DEFAULT_TEXT_WIDTH = 0.2;
 export const DEFAULT_TEXT_HEIGHT = 0.055;
-export const DEFAULT_FONT_SIZE = FONT_SIZES.M;
+export const DEFAULT_FONT_SIZE = DEFAULT_FONT_PT / PAGE_HEIGHT_PT;
+
+export function fontSizeToPt(size: number): number {
+  return clamp(Math.round((size || DEFAULT_FONT_SIZE) * PAGE_HEIGHT_PT), MIN_FONT_PT, MAX_FONT_PT);
+}
+
+export function ptToFontSize(pt: number): number {
+  return clamp(Math.round(Number(pt) || DEFAULT_FONT_PT), MIN_FONT_PT, MAX_FONT_PT) / PAGE_HEIGHT_PT;
+}
 
 export function emptyPage(): WorkspacePage {
   return { strokes: [], texts: [] };
@@ -124,19 +154,6 @@ export function strokeOpacity(stroke: WorkspaceStroke): number {
     return stroke.opacity;
   }
   return strokeTool(stroke) === 'highlighter' ? HIGHLIGHTER_OPACITY : 1;
-}
-
-export function fontSizeName(size: number): FontSizeName {
-  let best: FontSizeName = 'M';
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const name of FONT_SIZE_ORDER) {
-    const distance = Math.abs(FONT_SIZES[name] - size);
-    if (distance < bestDist) {
-      best = name;
-      bestDist = distance;
-    }
-  }
-  return best;
 }
 
 export function clampTextBox(box: Pick<WorkspaceTextBox, 'x' | 'y' | 'width' | 'height'>): {

@@ -8,6 +8,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { exportWorkspace, fetchWorkspaceInfo, fileUrl, workspacePageUrl } from '../api';
@@ -22,23 +23,27 @@ import {
   DRAW_TOOLS,
   DRAW_TOOL_LABELS,
   type DrawTool,
+  DEFAULT_FONT_PT,
+  DEFAULT_TOOL_SIZES,
+  clampStrokePt,
   type EditorMode,
-  FONT_SIZE_ORDER,
-  FONT_SIZES,
-  type FontSizeName,
+  fontSizeToPt,
   HIGHLIGHTER_OPACITY,
-  HIGHLIGHTER_WIDTH_PX,
   INK_COLORS,
   type InkColorName,
-  PEN_WIDTH_PX,
+  MAX_FONT_PT,
+  MIN_FONT_PT,
   type WorkspaceDoc,
   type WorkspacePage,
   type WorkspaceStroke,
   type WorkspaceTextBox,
   emptyPage,
-  fontSizeName,
   pageHasInk,
   placedTextBox,
+  ptToFontSize,
+  STROKE_LIMITS,
+  strokePtToNorm,
+  strokePtToScreenPx,
   strokeOpacity,
   strokeTool,
 } from '../lib/workspaceTypes';
@@ -68,9 +73,12 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
   const [pages, setPages] = useState<Record<string, WorkspacePage>>({});
   const [mode, setMode] = useState<EditorMode>('write');
   const [drawTool, setDrawTool] = useState<DrawTool>('pen');
+  const [toolSizes, setToolSizes] = useState({ ...DEFAULT_TOOL_SIZES });
+  const [strokeDraft, setStrokeDraft] = useState(String(DEFAULT_TOOL_SIZES.pen));
   const [colorName, setColorName] = useState<InkColorName>('Black');
   const [colorOpen, setColorOpen] = useState(false);
-  const [fontName, setFontName] = useState<FontSizeName>('M');
+  const [fontPt, setFontPt] = useState(DEFAULT_FONT_PT);
+  const [fontDraft, setFontDraft] = useState(String(DEFAULT_FONT_PT));
   const [textBold, setTextBold] = useState(false);
   const [textItalic, setTextItalic] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -233,7 +241,7 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
         id,
         ...placedTextBox(x, y),
         text: '',
-        fontSize: FONT_SIZES[fontName],
+        fontSize: ptToFontSize(fontPt),
         color: INK_COLORS[colorName],
         bold: textBold,
         italic: textItalic,
@@ -244,7 +252,7 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
       }));
       setSelectedTextId(id);
     },
-    [colorName, fontName, page, textBold, textItalic, updatePage],
+    [colorName, fontPt, page, textBold, textItalic, updatePage],
   );
 
   const handleChangeText = useCallback(
@@ -262,7 +270,9 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
     if (!box) {
       return;
     }
-    setFontName(fontSizeName(box.fontSize));
+    const nextPt = fontSizeToPt(box.fontSize);
+    setFontPt(nextPt);
+    setFontDraft(String(nextPt));
     setTextBold(Boolean(box.bold));
     setTextItalic(Boolean(box.italic));
     const match = COLOR_ORDER.find(
@@ -288,6 +298,7 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
 
   const applyDrawTool = useCallback((next: DrawTool) => {
     setDrawTool(next);
+    setStrokeDraft(String(toolSizes[next]));
     setColorOpen(false);
     if (next === 'highlighter' && colorName === 'Black') {
       setColorName('Yellow');
@@ -295,16 +306,33 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
     if (next === 'pen' && colorName === 'Yellow') {
       setColorName('Black');
     }
-  }, [colorName]);
+  }, [colorName, toolSizes]);
+
+  const applyStrokeSize = useCallback(
+    (raw: string | number) => {
+      const parsed = Number.parseFloat(String(raw));
+      const next = Number.isFinite(parsed) ? clampStrokePt(drawTool, parsed) : toolSizes[drawTool];
+      setToolSizes((prev) => ({ ...prev, [drawTool]: next }));
+      setStrokeDraft(String(next));
+      return next;
+    },
+    [drawTool, toolSizes],
+  );
 
   const applyFontSize = useCallback(
-    (name: FontSizeName) => {
-      setFontName(name);
+    (raw: string | number) => {
+      const parsed = Number.parseInt(String(raw), 10);
+      const next = Number.isFinite(parsed)
+        ? Math.min(MAX_FONT_PT, Math.max(MIN_FONT_PT, parsed))
+        : fontPt;
+      setFontPt(next);
+      setFontDraft(String(next));
       if (selectedTextId) {
-        handleChangeText(selectedTextId, { fontSize: FONT_SIZES[name] });
+        handleChangeText(selectedTextId, { fontSize: ptToFontSize(next) });
       }
+      return next;
     },
-    [handleChangeText, selectedTextId],
+    [fontPt, handleChangeText, selectedTextId],
   );
 
   const applyBold = useCallback(() => {
@@ -422,9 +450,9 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
     return containRect(stage.width, stage.height, naturalWidth, naturalHeight);
   }, [imageSize.height, imageSize.width, stage.height, stage.width]);
 
-  const widthNorm =
-    (drawTool === 'highlighter' ? HIGHLIGHTER_WIDTH_PX : PEN_WIDTH_PX) /
-    Math.max(pageRect.width, 1);
+  const strokePt = toolSizes[drawTool];
+  const strokeRange = STROKE_LIMITS[drawTool];
+  const widthNorm = strokePtToNorm(strokePt);
   const strokeAlpha = drawTool === 'highlighter' ? HIGHLIGHTER_OPACITY : 1;
   const canUndo = current.strokes.length > 0 || current.texts.length > 0;
   const saveLabel =
@@ -485,24 +513,77 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
                 label: DRAW_TOOL_LABELS[value],
               }))}
             />
+            <View style={styles.fontSizeField}>
+              <Pressable
+                onPress={() => applyStrokeSize(toolSizes[drawTool] - strokeRange.step)}
+                accessibilityRole="button"
+                accessibilityLabel="Smaller stroke"
+                style={styles.fontStep}
+              >
+                <Text style={styles.fontStepLabel}>−</Text>
+              </Pressable>
+              <TextInput
+                value={strokeDraft}
+                onChangeText={(text) => {
+                  setStrokeDraft(text);
+                  if (text.trim() === '') {
+                    return;
+                  }
+                  applyStrokeSize(text);
+                }}
+                onBlur={() => applyStrokeSize(strokeDraft)}
+                keyboardType="decimal-pad"
+                selectTextOnFocus
+                accessibilityLabel="Stroke size in points"
+                style={styles.fontSizeInput}
+              />
+              <Text style={styles.fontSizeUnit}>pt</Text>
+              <Pressable
+                onPress={() => applyStrokeSize(toolSizes[drawTool] + strokeRange.step)}
+                accessibilityRole="button"
+                accessibilityLabel="Larger stroke"
+                style={styles.fontStep}
+              >
+                <Text style={styles.fontStepLabel}>+</Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
           <View style={styles.toolGroup}>
-            {FONT_SIZE_ORDER.map((name) => {
-              const selected = name === fontName;
-              return (
-                <Pressable
-                  key={name}
-                  onPress={() => applyFontSize(name)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${name} text`}
-                  accessibilityState={{ selected }}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                >
-                  <Text style={[styles.chipLabel, selected && styles.chipLabelOn]}>{name}</Text>
-                </Pressable>
-              );
-            })}
+            <View style={styles.fontSizeField}>
+              <Pressable
+                onPress={() => applyFontSize(fontPt - 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Smaller text"
+                style={styles.fontStep}
+              >
+                <Text style={styles.fontStepLabel}>−</Text>
+              </Pressable>
+              <TextInput
+                value={fontDraft}
+                onChangeText={(text) => {
+                  setFontDraft(text);
+                  if (text.trim() === '') {
+                    return;
+                  }
+                  applyFontSize(text);
+                }}
+                onBlur={() => applyFontSize(fontDraft)}
+                keyboardType="number-pad"
+                selectTextOnFocus
+                accessibilityLabel="Font size in points"
+                style={styles.fontSizeInput}
+              />
+              <Text style={styles.fontSizeUnit}>pt</Text>
+              <Pressable
+                onPress={() => applyFontSize(fontPt + 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Larger text"
+                style={styles.fontStep}
+              >
+                <Text style={styles.fontStepLabel}>+</Text>
+              </Pressable>
+            </View>
             <Pressable
               onPress={applyBold}
               accessibilityRole="button"
@@ -645,6 +726,7 @@ export function WorkspaceScreen({ doc, onClose }: WorkspaceScreenProps) {
                   widthNorm={widthNorm}
                   tool={drawTool}
                   opacity={strokeAlpha}
+                  eraserRadius={strokePtToScreenPx(toolSizes.eraser, pageRect.width)}
                   onStrokeComplete={handleStroke}
                   onEraseStrokes={handleErase}
                 />
@@ -764,6 +846,10 @@ const styles = StyleSheet.create({
   },
   drawTools: {
     minWidth: 248,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
   },
   swatch: {
     width: 28,
@@ -824,6 +910,42 @@ const styles = StyleSheet.create({
   italicMark: {
     fontStyle: 'italic',
     fontWeight: '700',
+  },
+  fontSizeField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 34,
+    paddingHorizontal: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    gap: 4,
+  },
+  fontStep: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fontStepLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  fontSizeInput: {
+    width: 54,
+    paddingVertical: 0,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  fontSizeUnit: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.muted,
+    paddingRight: 4,
   },
   chip: {
     minHeight: 34,
